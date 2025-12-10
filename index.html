@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NBA Standings 2025-26</title>
+  <link rel="preconnect" href="https://site.api.espn.com">
+  <link rel="preconnect" href="https://site.web.api.espn.com">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="page-header">
+    <h1>NBA Standings 2025-26</h1>
+    <div class="controls">
+      <div class="tabs">
+        <button data-view="standings" class="tab active">Standings</button>
+        <button data-view="expanded" class="tab">Expanded</button>
+        <button data-view="vs-division" class="tab">Vs. Division</button>
+        <button data-view="nba-cup" class="tab">NBA Cup</button>
+      </div>
+      <div class="scopes">
+        <button data-scope="conference" class="scope active">Conference</button>
+        <button data-scope="league" class="scope">League</button>
+        <button data-scope="division" class="scope">Division</button>
+      </div>
+      <div class="seasons">
+        <select id="season-select">
+          <option value="2025" selected>2025-26</option>
+          <option value="2024">2024-25</option>
+          <option value="2023">2023-24</option>
+          <option value="2022">2022-23</option>
+          <option value="2021">2021-22</option>
+          <option value="2020">2020-21</option>
+        </select>
+        <select id="season-type-select">
+          <option value="2" selected>Regular Season</option>
+          <option value="1">Preseason</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main id="app">
+    <section id="conference-view" class="view active">
+      <div class="conference">
+        <h2>Eastern Conference</h2>
+        <div class="table-wrap">
+          <table class="standings">
+            <thead>
+              <tr>
+                <th class="rank">#</th>
+                <th class="team">Team</th>
+                <th>W</th>
+                <th>L</th>
+                <th>PCT</th>
+                <th>GB</th>
+                <th>HOME</th>
+                <th>AWAY</th>
+                <th>DIV</th>
+                <th>CONF</th>
+                <th>PPG</th>
+                <th>OPP PPG</th>
+                <th>DIFF</th>
+                <th>STRK</th>
+                <th>L10</th>
+              </tr>
+            </thead>
+            <tbody id="east-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="conference">
+        <h2>Western Conference</h2>
+        <div class="table-wrap">
+          <table class="standings">
+            <thead>
+              <tr>
+                <th class="rank">#</th>
+                <th class="team">Team</th>
+                <th>W</th>
+                <th>L</th>
+                <th>PCT</th>
+                <th>GB</th>
+                <th>HOME</th>
+                <th>AWAY</th>
+                <th>DIV</th>
+                <th>CONF</th>
+                <th>PPG</th>
+                <th>OPP PPG</th>
+                <th>DIFF</th>
+                <th>STRK</th>
+                <th>L10</th>
+              </tr>
+            </thead>
+            <tbody id="west-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="league-view" class="view">
+      <div class="table-wrap">
+        <table class="standings">
+          <thead>
+            <tr>
+              <th class="rank">#</th>
+              <th class="team">Team</th>
+              <th>W</th>
+              <th>L</th>
+              <th>PCT</th>
+              <th>GB</th>
+              <th>HOME</th>
+              <th>AWAY</th>
+              <th>DIV</th>
+              <th>CONF</th>
+              <th>PPG</th>
+              <th>OPP PPG</th>
+              <th>DIFF</th>
+              <th>STRK</th>
+              <th>L10</th>
+            </tr>
+          </thead>
+          <tbody id="league-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="division-view" class="view">
+      <div id="divisions"></div>
+    </section>
+  </main>
+
+  <footer class="page-footer">
+    <div id="status"></div>
+  </footer>
+
+  <script src="standings.js"></script>
+</body>
+</html>

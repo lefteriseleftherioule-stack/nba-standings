@@ -1,0 +1,31 @@
+:root{--bg:#0f1115;--card:#161a22;--text:#e6e8eb;--muted:#98a2b3;--accent:#2f81f7;--good:#16a34a;--bad:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+.page-header{padding:16px 20px;border-bottom:1px solid #1f2430;background:var(--card);position:sticky;top:0;z-index:10}
+.page-header h1{margin:0 0 12px;font-size:20px}
+.controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.tabs,.scopes{display:flex;gap:8px}
+.tab,.scope{appearance:none;border:1px solid #2a3140;background:#121620;color:var(--text);padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer}
+.tab.active,.scope.active{background:var(--accent);border-color:var(--accent)}
+.seasons select{background:#121620;color:var(--text);border:1px solid #2a3140;border-radius:8px;padding:8px 12px}
+#app{padding:20px}
+.conference{margin-bottom:28px}
+.conference h2{margin:0 0 10px;font-size:18px;color:var(--muted)}
+.table-wrap{overflow:auto;border:1px solid #1f2430;border-radius:10px}
+table.standings{width:100%;border-collapse:collapse;min-width:900px;background:var(--card)}
+thead tr{background:#121620}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #1f2430}
+th.team,td.team{text-align:left}
+th.rank,td.rank{width:40px}
+tbody tr:hover{background:#131926}
+.team-cell{display:flex;align-items:center;gap:10px}
+.team-logo{width:24px;height:24px;border-radius:50%;object-fit:contain;background:#0b0e14}
+.pos-good{color:var(--good)}
+.pos-bad{color:var(--bad)}
+.page-footer{padding:16px 20px;border-top:1px solid #1f2430;color:var(--muted)}
+.view{display:none}
+.view.active{display:block}
+.division-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.division-card{border:1px solid #1f2430;border-radius:10px;background:var(--card)}
+.division-card h3{margin:10px 12px;color:var(--muted)}
+.division-card .table-wrap{border:none}

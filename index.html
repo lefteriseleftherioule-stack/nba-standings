@@ -13,8 +13,8 @@
     <h1>NBA Standings</h1>
     <div class="controls">
       <div class="segmented view-switch">
-        <button class="btn view-btn active" data-scope="league">League</button>
-        <button class="btn view-btn" data-scope="conference">Conference</button>
+        <button class="btn view-btn" data-scope="league">League</button>
+        <button class="btn view-btn active" data-scope="conference">Conference</button>
         <button class="btn view-btn" data-scope="division">Division</button>
       </div>
       <div class="segmented season-switch">
@@ -30,7 +30,7 @@
   </header>
 
   <main id="app">
-    <section id="conference-view" class="view">
+    <section id="conference-view" class="view active">
       <div class="conference">
         <h2>Eastern Conference</h2>
         <div class="table-wrap">
@@ -87,7 +87,7 @@
       </div>
     </section>
 
-    <section id="league-view" class="view active">
+    <section id="league-view" class="view">
       <div class="table-wrap">
         <table class="standings">
           <thead>

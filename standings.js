@@ -7,7 +7,16 @@ const typeSelect=$('#season-type-select')
 seasonSelect.addEventListener('change',e=>{state.season=e.target.value;load()})
 typeSelect.addEventListener('change',e=>{state.type=e.target.value;load()})
 $$('.scope').forEach(b=>b.addEventListener('click',e=>{$$('.scope').forEach(x=>x.classList.remove('active'));e.currentTarget.classList.add('active');state.scope=e.currentTarget.dataset.scope;renderScope()}))
-$$('.tab').forEach(b=>b.addEventListener('click',e=>{$$('.tab').forEach(x=>x.classList.remove('active'));e.currentTarget.classList.add('active');state.tab=e.currentTarget.dataset.view}))
+$$('.tab').forEach(b=>b.addEventListener('click',e=>{
+  $$('.tab').forEach(x=>x.classList.remove('active'))
+  e.currentTarget.classList.add('active')
+  state.tab=e.currentTarget.dataset.view
+  if(state.tab==='standings') state.scope='conference'
+  if(state.tab==='expanded') state.scope='league'
+  if(state.tab==='vs-division') state.scope='division'
+  if(state.tab==='nba-cup') status('NBA Cup view coming soon')
+  renderScope()
+}))
 
 async function load(){
   status('Loading…')
@@ -22,8 +31,8 @@ function status(t){statusEl.textContent=t}
 
 async function fetchStandings(season,type){
   const urls=[
-    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}`,
-    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings`
+    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en&contentorigin=espn`,
+    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?region=us&lang=en`
   ]
   for(const u of urls){
     try{
@@ -40,7 +49,9 @@ function normalize(raw){
   if(raw.children){
     const groups=raw.children.map(g=>({
       name:g.name||g.uid||'',
-      teams:(g.standings?.entries||g.children?.flatMap(c=>c.standings?.entries)||[]).map(e=>mapEntry(e))
+      teams:(g.standings?.entries||[]).length
+        ? (g.standings.entries||[]).map(e=>mapEntry(e))
+        : (g.children||[]).flatMap(c=> (c.standings?.entries||[]).map(e=>mapEntry(e,c.name)))
     }))
     return groupByScope(groups)
   }
@@ -59,49 +70,56 @@ function normalize(raw){
   return {conference:{East:flat.filter(t=>t.conference==='East'),West:flat.filter(t=>t.conference==='West')},league:flat,divisions:groupDivisions(flat)}
 }
 
-function mapEntry(e){
+function mapEntry(e,divisionName){
   const team=e.team||e
-  const recs=e.stats||e.records||e.statsItems||e.record||{}
-  const get=(a,b)=>{
-    if(Array.isArray(a)){
-      const f=a.find(x=>x.name===b||x.type===b||x.abbreviation===b)
-      return f?.value??f?.displayValue
+  const stats=e.stats||e.statsItems||e.record||[]
+  const records=e.records||[]
+  const sv=(arr,...names)=>{
+    if(!Array.isArray(arr)) return undefined
+    for(const n of names){
+      const f=arr.find(x=>x.name===n||x.type===n||x.abbreviation===n)
+      if(f) return f.value??f.displayValue
     }
-    return a?.[b]
+    return undefined
   }
-  const overall=e.records?.find(r=>r.name==='overall')||e.stats?.find(s=>s.name==='overall')
-  const home=e.records?.find(r=>r.name==='home')||e.stats?.find(s=>s.name==='home')
-  const road=e.records?.find(r=>r.name==='road')||e.stats?.find(s=>s.name==='away')
-  const conf=e.records?.find(r=>r.name==='conference')||e.stats?.find(s=>s.name==='conference')
-  const div=e.records?.find(r=>r.name==='division')||e.stats?.find(s=>s.name==='division')
-  const lastTen=e.records?.find(r=>r.name==='lastTen')||e.stats?.find(s=>s.name==='lastTen')
-  const streak=e.records?.find(r=>r.name==='streak')||e.stats?.find(s=>s.name==='streak')
-  const wins=parseInt(get(overall,'wins'))||0
-  const losses=parseInt(get(overall,'losses'))||0
-  const pct=wins+losses?wins/(wins+losses):0
-  const pf=parseFloat(get(recs,'pointsFor'))||parseFloat(get(e.stats,'pointsFor'))||NaN
-  const pa=parseFloat(get(recs,'pointsAgainst'))||parseFloat(get(e.stats,'pointsAgainst'))||NaN
-  const ppg=isNaN(pf)?NaN:pf
-  const opppg=isNaN(pa)?NaN:pa
+  const rec=(n)=>Array.isArray(records)?records.find(r=>r.name===n):undefined
+  const wins=(rec('overall')?.wins)!=null?parseInt(rec('overall').wins):parseInt(sv(stats,'wins'))||0
+  const losses=(rec('overall')?.losses)!=null?parseInt(rec('overall').losses):parseInt(sv(stats,'losses'))||0
+  let pct=sv(stats,'winPercent','percentage')
+  pct=typeof pct==='number'?pct:(wins+losses?wins/(wins+losses):0)
+  const hw=(rec('home')?.wins)!=null?parseInt(rec('home').wins):parseInt(sv(stats,'homeWins'))
+  const hl=(rec('home')?.losses)!=null?parseInt(rec('home').losses):parseInt(sv(stats,'homeLosses'))
+  const rw=(rec('road')?.wins)!=null?parseInt(rec('road').wins):parseInt(sv(stats,'roadWins')||sv(stats,'awayWins'))
+  const rl=(rec('road')?.losses)!=null?parseInt(rec('road').losses):parseInt(sv(stats,'roadLosses')||sv(stats,'awayLosses'))
+  const cw=(rec('conference')?.wins)!=null?parseInt(rec('conference').wins):parseInt(sv(stats,'conferenceWins'))
+  const cl=(rec('conference')?.losses)!=null?parseInt(rec('conference').losses):parseInt(sv(stats,'conferenceLosses'))
+  const dw=(rec('division')?.wins)!=null?parseInt(rec('division').wins):parseInt(sv(stats,'divisionWins'))
+  const dl=(rec('division')?.losses)!=null?parseInt(rec('division').losses):parseInt(sv(stats,'divisionLosses'))
+  const lts=rec('lastTen')?.summary
+  const ltw=(rec('lastTen')?.wins)!=null?parseInt(rec('lastTen').wins):parseInt(sv(stats,'lastTenWins'))
+  const ltl=(rec('lastTen')?.losses)!=null?parseInt(rec('lastTen').losses):parseInt(sv(stats,'lastTenLosses'))
+  const streak=sv(stats,'streak')||rec('streak')?.summary
+  const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
+  const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg'))
   return {
     id:team.id||team.uid||'',
     name:team.displayName||team.name,
     short:team.abbreviation||'',
     logo:(team.logos?.[0]?.href)||team.logo||'',
     conference:team.conference?.name||team.conferenceName||team.groups?.[0]?.name||'',
-    division:team.division?.name||team.divisionName||'',
+    division:divisionName||team.division?.name||team.divisionName||'',
     wins,
     losses,
     pct,
-    home:get(home,'summary')||fmtWL(get(home,'wins'),get(home,'losses')),
-    away:get(road,'summary')||fmtWL(get(road,'wins'),get(road,'losses')),
-    conf:get(conf,'summary')||fmtWL(get(conf,'wins'),get(conf,'losses')),
-    div:get(div,'summary')||fmtWL(get(div,'wins'),get(div,'losses')),
+    home:fmtWL(hw,hl) || rec('home')?.summary || '-',
+    away:fmtWL(rw,rl) || rec('road')?.summary || '-',
+    conf:fmtWL(cw,cl) || rec('conference')?.summary || '-',
+    div:fmtWL(dw,dl) || rec('division')?.summary || '-',
     ppg:isNaN(ppg)?null:round(ppg,1),
     opppg:isNaN(opppg)?null:round(opppg,1),
     diff:(isNaN(ppg)||isNaN(opppg))?null:round(ppg-opppg,1),
-    streak:streak?.summary||streak?.displayValue||'',
-    lastTen:lastTen?.summary||fmtWL(get(lastTen,'wins'),get(lastTen,'losses'))
+    streak:typeof streak==='string'?streak:(streak?.displayValue||rec('streak')?.summary||''),
+    lastTen:lts||fmtWL(ltw,ltl)
   }
 }
 
@@ -183,7 +201,9 @@ function fillTable(tbody,teams){
   tbody.innerHTML=''
   teams.forEach(t=>{
     const tr=document.createElement('tr')
-    const logo=t.logo?`<img class="team-logo" src="${t.logo}" alt="">`:''
+    const fallbackLogo=t.short?`https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${t.short.toLowerCase()}.png`:''
+    const logoSrc=t.logo||fallbackLogo
+    const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="">`:''
     const diffClass=t.diff==null?'':(t.diff>=0?'pos-good':'pos-bad')
     tr.innerHTML=`
       <td class="rank">${t.rank}</td>
@@ -192,15 +212,15 @@ function fillTable(tbody,teams){
       <td>${t.losses}</td>
       <td>${round(t.pct,3).toFixed(3)}</td>
       <td>${t.gb?round(t.gb,1):'-'}</td>
-      <td>${t.home||'-'}</td>
-      <td>${t.away||'-'}</td>
-      <td>${t.div||'-'}</td>
-      <td>${t.conf||'-'}</td>
+      <td>${t.home??'-'}</td>
+      <td>${t.away??'-'}</td>
+      <td>${t.div??'-'}</td>
+      <td>${t.conf??'-'}</td>
       <td>${t.ppg!=null?t.ppg:'-'}</td>
       <td>${t.opppg!=null?t.opppg:'-'}</td>
       <td class="${diffClass}">${t.diff!=null?(t.diff>0?`+${t.diff}`:t.diff):'-'}</td>
-      <td>${t.streak||'-'}</td>
-      <td>${t.lastTen||'-'}</td>
+      <td>${t.streak??'-'}</td>
+      <td>${t.lastTen??'-'}</td>
     `
     tbody.appendChild(tr)
   })

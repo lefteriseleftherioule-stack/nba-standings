@@ -10,38 +10,27 @@
 </head>
 <body>
   <header class="page-header">
-    <h1>NBA Standings 2025-26</h1>
+    <h1>NBA Standings</h1>
     <div class="controls">
-      <div class="tabs">
-        <button data-view="standings" class="tab active">Standings</button>
-        <button data-view="expanded" class="tab">Expanded</button>
-        <button data-view="vs-division" class="tab">Vs. Division</button>
-        <button data-view="nba-cup" class="tab">NBA Cup</button>
+      <div class="segmented view-switch">
+        <button class="btn view-btn active" data-scope="league">League</button>
+        <button class="btn view-btn" data-scope="conference">Conference</button>
+        <button class="btn view-btn" data-scope="division">Division</button>
       </div>
-      <div class="scopes">
-        <button data-scope="conference" class="scope active">Conference</button>
-        <button data-scope="league" class="scope">League</button>
-        <button data-scope="division" class="scope">Division</button>
+      <div class="segmented season-switch">
+        <button class="btn season-btn active" data-season="2025">2025-26</button>
+        <button class="btn season-btn" data-season="2024">2024-25</button>
+        <button class="btn season-btn" data-season="2023">2023-24</button>
       </div>
-      <div class="seasons">
-        <select id="season-select">
-          <option value="2025" selected>2025-26</option>
-          <option value="2024">2024-25</option>
-          <option value="2023">2023-24</option>
-          <option value="2022">2022-23</option>
-          <option value="2021">2021-22</option>
-          <option value="2020">2020-21</option>
-        </select>
-        <select id="season-type-select">
-          <option value="2" selected>Regular Season</option>
-          <option value="1">Preseason</option>
-        </select>
+      <div class="segmented type-switch">
+        <button class="btn type-btn active" data-type="2">Regular Season</button>
+        <button class="btn type-btn" data-type="1">Preseason</button>
       </div>
     </div>
   </header>
 
   <main id="app">
-    <section id="conference-view" class="view active">
+    <section id="conference-view" class="view">
       <div class="conference">
         <h2>Eastern Conference</h2>
         <div class="table-wrap">
@@ -98,7 +87,7 @@
       </div>
     </section>
 
-    <section id="league-view" class="view">
+    <section id="league-view" class="view active">
       <div class="table-wrap">
         <table class="standings">
           <thead>

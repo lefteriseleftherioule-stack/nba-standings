@@ -12,9 +12,9 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;backg
 .conference{margin-bottom:28px}
 .conference h2{margin:0 0 10px;font-size:18px;color:var(--muted)}
 .table-wrap{overflow:auto;border:1px solid #1f2430;border-radius:10px}
-table.standings{width:100%;border-collapse:collapse;min-width:900px;background:var(--card)}
+table.standings{width:100%;border-collapse:collapse;min-width:900px;background:var(--card);color:var(--text)}
 thead tr{background:#121620}
-th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #1f2430}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #1f2430;color:var(--text)}
 th.team,td.team{text-align:left}
 th.rank,td.rank{width:40px}
 tbody tr:hover{background:#131926}

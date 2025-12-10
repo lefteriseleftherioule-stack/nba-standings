@@ -1,21 +1,24 @@
-const state={season:'2025',type:'2',scope:'conference',tab:'standings'}
+const state={season:'2025',type:'2',scope:'league'}
 const $=s=>document.querySelector(s)
 const $$=s=>Array.from(document.querySelectorAll(s))
 const statusEl=$('#status')
-const seasonSelect=$('#season-select')
-const typeSelect=$('#season-type-select')
-seasonSelect.addEventListener('change',e=>{state.season=e.target.value;load()})
-typeSelect.addEventListener('change',e=>{state.type=e.target.value;load()})
-$$('.scope').forEach(b=>b.addEventListener('click',e=>{$$('.scope').forEach(x=>x.classList.remove('active'));e.currentTarget.classList.add('active');state.scope=e.currentTarget.dataset.scope;renderScope()}))
-$$('.tab').forEach(b=>b.addEventListener('click',e=>{
-  $$('.tab').forEach(x=>x.classList.remove('active'))
+$$('.view-btn').forEach(b=>b.addEventListener('click',e=>{
+  $$('.view-btn').forEach(x=>x.classList.remove('active'))
   e.currentTarget.classList.add('active')
-  state.tab=e.currentTarget.dataset.view
-  if(state.tab==='standings') state.scope='conference'
-  if(state.tab==='expanded') state.scope='league'
-  if(state.tab==='vs-division') state.scope='division'
-  if(state.tab==='nba-cup') status('NBA Cup view coming soon')
+  state.scope=e.currentTarget.dataset.scope
   renderScope()
+}))
+$$('.season-btn').forEach(b=>b.addEventListener('click',e=>{
+  $$('.season-btn').forEach(x=>x.classList.remove('active'))
+  e.currentTarget.classList.add('active')
+  state.season=e.currentTarget.dataset.season
+  load()
+}))
+$$('.type-btn').forEach(b=>b.addEventListener('click',e=>{
+  $$('.type-btn').forEach(x=>x.classList.remove('active'))
+  e.currentTarget.classList.add('active')
+  state.type=e.currentTarget.dataset.type
+  load()
 }))
 
 async function load(){
@@ -212,10 +215,10 @@ function fillTable(tbody,teams){
       <td>${t.losses}</td>
       <td>${round(t.pct,3).toFixed(3)}</td>
       <td>${t.gb?round(t.gb,1):'-'}</td>
-      <td>${t.home??'-'}</td>
-      <td>${t.away??'-'}</td>
-      <td>${t.div??'-'}</td>
-      <td>${t.conf??'-'}</td>
+      <td>${t.home||'-'}</td>
+      <td>${t.away||'-'}</td>
+      <td>${t.div||'-'}</td>
+      <td>${t.conf||'-'}</td>
       <td>${t.ppg!=null?t.ppg:'-'}</td>
       <td>${t.opppg!=null?t.opppg:'-'}</td>
       <td class="${diffClass}">${t.diff!=null?(t.diff>0?`+${t.diff}`:t.diff):'-'}</td>

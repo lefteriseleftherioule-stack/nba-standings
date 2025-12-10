@@ -78,6 +78,7 @@ function mapEntry(e,divisionName){
   const team=e.team||e
   const stats=e.stats||e.statsItems||e.record||[]
   const records=e.records||[]
+  const find=(arr,...names)=>Array.isArray(arr)?arr.find(x=>names.some(n=>x.name===n||x.type===n||x.abbreviation===n)):undefined
   const sv=(arr,...names)=>{
     if(!Array.isArray(arr)) return undefined
     for(const n of names){
@@ -102,7 +103,8 @@ function mapEntry(e,divisionName){
   const lts=rec('lastTen')?.summary
   const ltw=(rec('lastTen')?.wins)!=null?parseInt(rec('lastTen').wins):parseInt(sv(stats,'lastTenWins'))
   const ltl=(rec('lastTen')?.losses)!=null?parseInt(rec('lastTen').losses):parseInt(sv(stats,'lastTenLosses'))
-  const streak=sv(stats,'streak')||rec('streak')?.summary
+  const streakStat=find(stats,'streak')
+  const streak=(typeof streakStat?.displayValue==='string'&&streakStat.displayValue)||rec('streak')?.summary||undefined
   const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
   const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg'))
   return {
@@ -122,7 +124,7 @@ function mapEntry(e,divisionName){
     ppg:isNaN(ppg)?null:round(ppg,1),
     opppg:isNaN(opppg)?null:round(opppg,1),
     diff:(isNaN(ppg)||isNaN(opppg))?null:round(ppg-opppg,1),
-    streak:typeof streak==='string'?streak:(streak?.displayValue||rec('streak')?.summary||''),
+    streak:streak||'',
     lastTen:lts||fmtWL(ltw,ltl)
   }
 }
@@ -273,17 +275,26 @@ async function backfillRecords(data){
 }
 
 async function fetchCoreRecordAndApply(team,idMap){
-  const base=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${team.id}/record`
+  const base=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${team.id}/record?lang=en&region=us`
   try{
     const r=await fetch(base,{cache:'no-store'})
     if(!r.ok) return
     const j=await r.json()
     const items=j.items||[]
     const details=await Promise.all(items.slice(0,12).map(async it=>{
-      try{const rr=await fetch(it.href,{cache:'no-store'});if(!rr.ok) return null;return await rr.json()}catch(e){return null}
+      try{const rr=await fetch(`${it.href}?lang=en&region=us`,{cache:'no-store'});if(!rr.ok) return null;return await rr.json()}catch(e){return null}
     }))
     const byName=(n)=>details.find(d=>d&&((d.type&&new RegExp(n,'i').test(d.type))||(d.name&&new RegExp(n,'i').test(d.name))))
-    const getSummary=(d)=>d?.summary||((Number.isFinite(d?.wins)&&Number.isFinite(d?.losses))?`${d.wins}-${d.losses}`:undefined)
+    const getSummary=(d)=>{
+      if(!d) return undefined
+      if(typeof d.summary==='string') return d.summary
+      if(typeof d.displayValue==='string') return d.displayValue
+      if(Number.isFinite(d.wins)&&Number.isFinite(d.losses)) return `${d.wins}-${d.losses}`
+      if((d.type&&/streak/i.test(d.type))||(d.name&&/streak/i.test(d.name))){
+        if(typeof d.value==='number'){ return d.value>0?`W${d.value}`:`L${Math.abs(d.value)}` }
+      }
+      return undefined
+    }
     const updated=idMap.get(String(team.id))||team
     const home=byName('home')
     const road=byName('road')||byName('away')

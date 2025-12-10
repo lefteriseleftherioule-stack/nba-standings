@@ -26,6 +26,7 @@ async function load(){
   const data=await fetchStandings(state.season,state.type)
   if(!data){status('Failed to load standings');return}
   const normalized=normalize(data)
+  await backfillRecords(normalized)
   render(normalized)
   status('Updated')
 }
@@ -211,13 +212,14 @@ function fillTable(tbody,teams){
     const logoSrc=t.logo||fallbackLogo
     const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="">`:''
     const diffClass=t.diff==null?'':(t.diff>=0?'pos-good':'pos-bad')
+    const gbDisplay=(t.gb===0)?'-':round(t.gb,1)
     tr.innerHTML=`
       <td class="rank">${t.rank}</td>
       <td class="team"><div class="team-cell">${logo}<span>${t.name}</span></div></td>
       <td>${t.wins}</td>
       <td>${t.losses}</td>
       <td>${round(t.pct,3).toFixed(3)}</td>
-      <td>${t.gb?round(t.gb,1):'-'}</td>
+      <td>${gbDisplay}</td>
       <td>${t.home||'-'}</td>
       <td>${t.away||'-'}</td>
       <td>${t.div||'-'}</td>
@@ -230,6 +232,75 @@ function fillTable(tbody,teams){
     `
     tbody.appendChild(tr)
   })
+}
+
+async function backfillRecords(data){
+  try{
+    const all=data.league
+    const idMap=new Map(all.map(t=>[String(t.id),t]))
+    const queue=all.map(t=>()=>fetchCoreRecordAndApply(t,idMap))
+    const limit=6
+    let index=0
+    const workers=Array.from({length:limit}).map(async()=>{
+      while(index<queue.length){
+        const fn=queue[index++]
+        await fn()
+      }
+    })
+    await Promise.all(workers)
+    const applyToArray=(arr)=>{
+      arr.forEach((t,i)=>{
+        const updated=idMap.get(String(t.id))
+        if(updated){
+          arr[i]={...t,
+            home:updated.home||t.home,
+            away:updated.away||t.away,
+            div:updated.div||t.div,
+            conf:updated.conf||t.conf,
+            lastTen:updated.lastTen||t.lastTen,
+            streak:updated.streak||t.streak,
+            ppg:updated.ppg??t.ppg,
+            opppg:updated.opppg??t.opppg,
+            diff:updated.diff??t.diff
+          }
+        }
+      })
+    }
+    applyToArray(data.conference.East)
+    applyToArray(data.conference.West)
+    Object.keys(data.divisions).forEach(k=>applyToArray(data.divisions[k]))
+  }catch(e){/* ignore backfill errors */}
+}
+
+async function fetchCoreRecordAndApply(team,idMap){
+  const base=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${team.id}/record`
+  try{
+    const r=await fetch(base,{cache:'no-store'})
+    if(!r.ok) return
+    const j=await r.json()
+    const items=j.items||[]
+    const details=await Promise.all(items.slice(0,12).map(async it=>{
+      try{const rr=await fetch(it.href,{cache:'no-store'});if(!rr.ok) return null;return await rr.json()}catch(e){return null}
+    }))
+    const byName=(n)=>details.find(d=>d&&((d.type&&new RegExp(n,'i').test(d.type))||(d.name&&new RegExp(n,'i').test(d.name))))
+    const getSummary=(d)=>d?.summary||((Number.isFinite(d?.wins)&&Number.isFinite(d?.losses))?`${d.wins}-${d.losses}`:undefined)
+    const updated=idMap.get(String(team.id))||team
+    const home=byName('home')
+    const road=byName('road')||byName('away')
+    const conf=byName('conference')
+    const div=byName('division')
+    const lastTen=byName('lastTen')
+    const streak=byName('streak')
+    const pf=details.find(d=>d&&/points/i.test(d?.name||'')&&/for/i.test(d?.name||''))
+    const pa=details.find(d=>d&&/points/i.test(d?.name||'')&&/against|opp/i.test(d?.name||''))
+    updated.home=getSummary(home)||updated.home
+    updated.away=getSummary(road)||updated.away
+    updated.conf=getSummary(conf)||updated.conf
+    updated.div=getSummary(div)||updated.div
+    updated.lastTen=getSummary(lastTen)||updated.lastTen
+    updated.streak=streak?.summary||updated.streak
+    // keep ppg/opppg if already present
+  }catch(e){return}
 }
 
 load()

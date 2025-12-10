@@ -1,4 +1,4 @@
-const state={season:'2025',type:'2',scope:'league'}
+const state={season:'2025',type:'2',scope:'conference'}
 const $=s=>document.querySelector(s)
 const $$=s=>Array.from(document.querySelectorAll(s))
 const statusEl=$('#status')
@@ -149,7 +149,10 @@ function rank(list){
 }
 
 function round(n,d){const p=10**d;return Math.round(n*p)/p}
-function fmtWL(w,l){if(w==null||l==null)return '';return `${w}-${l}`}
+function fmtWL(w,l){
+  if(!Number.isFinite(w) || !Number.isFinite(l)) return '-'
+  return `${w}-${l}`
+}
 
 function render(data){
   renderConference(data.conference)

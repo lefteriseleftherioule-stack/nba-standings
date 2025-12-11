@@ -277,13 +277,53 @@ async function backfillRecords(data){
 async function fetchCoreRecordAndApply(team,idMap){
   const base=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${team.id}/record?lang=en&region=us`
   try{
-    const r=await fetch(base,{cache:'no-store'})
-    if(!r.ok) return
-    const j=await r.json()
-    const items=j.items||[]
-    const details=await Promise.all(items.slice(0,12).map(async it=>{
-      try{const rr=await fetch(`${it.href}?lang=en&region=us`,{cache:'no-store'});if(!rr.ok) return null;return await rr.json()}catch(e){return null}
-    }))
+    let details=[]
+    let r=await fetch(base,{cache:'no-store'})
+    if(r.ok){
+      const j=await r.json()
+      const items=j.items||[]
+      details=await Promise.all(items.slice(0,16).map(async it=>{
+        try{const rr=await fetch(`${it.href}?lang=en&region=us`,{cache:'no-store'});if(!rr.ok) return null;return await rr.json()}catch(e){return null}
+      }))
+      details=details.filter(Boolean)
+    }
+    if(!details.length){
+      const alt=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/teams/${team.id}/record?season=${state.season}&type=${state.type}&lang=en&region=us`
+      r=await fetch(alt,{cache:'no-store'})
+      if(r.ok){
+        const j=await r.json()
+        const items=j.items||[]
+        const ds=await Promise.all(items.slice(0,16).map(async it=>{
+          try{const rr=await fetch(`${it.href}?lang=en&region=us`,{cache:'no-store'});if(!rr.ok) return null;return await rr.json()}catch(e){return null}
+        }))
+        details=ds.filter(Boolean)
+      }
+    }
+    if(!details.length){
+      const altWeb=`https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams/${team.id}?region=us&lang=en`
+      r=await fetch(altWeb,{cache:'no-store'})
+      if(r.ok){
+        const j=await r.json()
+        const items=j.record?.items||[]
+        const ds=await Promise.all(items.slice(0,16).map(async it=>{
+          try{const rr=await fetch(`${it.href}?lang=en&region=us`,{cache:'no-store'});if(!rr.ok) return null;return await rr.json()}catch(e){return null}
+        }))
+        details=ds.filter(Boolean)
+      }
+    }
+    if(!details.length){
+      const altSite=`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${team.id}`
+      r=await fetch(altSite,{cache:'no-store'})
+      if(r.ok){
+        const j=await r.json()
+        const items=j.record?.items||j.team?.record?.items||[]
+        const ds=await Promise.all(items.slice(0,16).map(async it=>{
+          try{const rr=await fetch(it.href,{cache:'no-store'});if(!rr.ok) return null;return await rr.json()}catch(e){return null}
+        }))
+        details=ds.filter(Boolean)
+      }
+    }
+    if(!details.length) return
     const byName=(n)=>details.find(d=>d&&((d.type&&new RegExp(n,'i').test(d.type))||(d.name&&new RegExp(n,'i').test(d.name))))
     const getSummary=(d)=>{
       if(!d) return undefined
@@ -302,14 +342,12 @@ async function fetchCoreRecordAndApply(team,idMap){
     const div=byName('division')
     const lastTen=byName('lastTen')
     const streak=byName('streak')
-    const pf=details.find(d=>d&&/points/i.test(d?.name||'')&&/for/i.test(d?.name||''))
-    const pa=details.find(d=>d&&/points/i.test(d?.name||'')&&/against|opp/i.test(d?.name||''))
     updated.home=getSummary(home)||updated.home
     updated.away=getSummary(road)||updated.away
     updated.conf=getSummary(conf)||updated.conf
     updated.div=getSummary(div)||updated.div
     updated.lastTen=getSummary(lastTen)||updated.lastTen
-    updated.streak=streak?.summary||updated.streak
+    updated.streak=getSummary(streak)||updated.streak
     // keep ppg/opppg if already present
   }catch(e){return}
 }

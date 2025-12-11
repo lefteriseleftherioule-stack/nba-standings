@@ -28,9 +28,14 @@ async function load(){
   const data=await fetchStandings(state.season,state.type)
   if(!data){status('Failed to load standings');return}
   const normalized=normalize(data)
-  await backfillRecords(normalized)
   render(normalized)
-  status('Updated')
+  status('Updating splits…')
+  backfillRecords(normalized).then(()=>{
+    render(normalized)
+    status('Updated')
+  }).catch(()=>{
+    status('Updated')
+  })
 }
 
 function status(t){statusEl.textContent=t}
@@ -103,17 +108,17 @@ function mapEntry(e,divisionName){
   const dw=(rec('division')?.wins)!=null?parseInt(rec('division').wins):parseInt(sv(stats,'divisionWins'))
   const dl=(rec('division')?.losses)!=null?parseInt(rec('division').losses):parseInt(sv(stats,'divisionLosses'))
   const lts=rec('lastTen')?.summary
-  const ltw=(rec('lastTen')?.wins)!=null?parseInt(rec('lastTen').wins):parseInt(sv(stats,'lastTenWins'))
-  const ltl=(rec('lastTen')?.losses)!=null?parseInt(rec('lastTen').losses):parseInt(sv(stats,'lastTenLosses'))
+  const ltw=(rec('lastTen')?.wins)!=null?parseInt(rec('lastTen').wins):parseInt(sv(stats,'lastTenWins')||sv(stats,'last10wins'))
+  const ltl=(rec('lastTen')?.losses)!=null?parseInt(rec('lastTen').losses):parseInt(sv(stats,'lastTenLosses')||sv(stats,'last10losses'))
   const streakStat=find(stats,'streak')
   const streak=(typeof streakStat?.displayValue==='string'&&streakStat.displayValue)||rec('streak')?.summary||undefined
   const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
   const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg'))
   const homeStat=find(stats,'home')
   const awayStat=find(stats,'away','road')
-  const confStat=find(stats,'conference')
-  const divStat=find(stats,'division')
-  const lastTenStat=find(stats,'lastTen')
+  const confStat=find(stats,'conference','conferenceRecord')
+  const divStat=find(stats,'division','divisionRecord')
+  const lastTenStat=find(stats,'lastTen','last10','L10')
   return {
     id:team.id||team.uid||'',
     name:team.displayName||team.name,
@@ -248,7 +253,7 @@ async function backfillRecords(data){
     const all=data.league
     const idMap=new Map(all.map(t=>[String(t.id),t]))
     const queue=all.map(t=>()=>fetchCoreRecordAndApply(t,idMap))
-    const limit=6
+    const limit=8
     let index=0
     const workers=Array.from({length:limit}).map(async()=>{
       while(index<queue.length){
@@ -364,7 +369,7 @@ async function backfillSchedule(data,idMap){
   await ensureTeamIndex()
   const all=data.league
   const queue=all.map(t=>()=>fetchScheduleAndApply(t,idMap))
-  const limit=6
+  const limit=8
   let index=0
   const workers=Array.from({length:limit}).map(async()=>{
     while(index<queue.length){

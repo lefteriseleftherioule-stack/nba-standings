@@ -73,6 +73,13 @@ async function load(){
 
 function status(t){statusEl.textContent=t}
 
+function parseWL(s){
+  if(typeof s!=='string') return [NaN,NaN]
+  const m=s.match(/(\d+)\s*-\s*(\d+)/)
+  if(!m) return [NaN,NaN]
+  return [parseInt(m[1]),parseInt(m[2])]
+}
+
 async function fetchStandings(season,type){
   const urls=[
     `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en&contentorigin=espn`,
@@ -170,6 +177,7 @@ function mapEntry(e,divisionName){
   const cl=(rec('conference')?.losses)!=null?parseInt(rec('conference').losses):parseInt(sv(stats,'conferenceLosses'))
   const dw=(rec('division')?.wins)!=null?parseInt(rec('division').wins):parseInt(sv(stats,'divisionWins'))
   const dl=(rec('division')?.losses)!=null?parseInt(rec('division').losses):parseInt(sv(stats,'divisionLosses'))
+  const lastTenStat=find(stats,'lastTen','last10','L10')
   const lts=rec('lastTen','last10','L10','lastTenRecord')?.summary
   let ltw=(rec('lastTen','last10','L10','lastTenRecord')?.wins)!=null?parseInt(rec('lastTen','last10','L10','lastTenRecord').wins):parseInt(sv(stats,'lastTenWins','last10wins'))
   let ltl=(rec('lastTen','last10','L10','lastTenRecord')?.losses)!=null?parseInt(rec('lastTen','last10','L10','lastTenRecord').losses):parseInt(sv(stats,'lastTenLosses','last10losses'))
@@ -186,7 +194,7 @@ function mapEntry(e,divisionName){
   const awayStat=find(stats,'away','road')
   const confStat=find(stats,'conference','conferenceRecord','vsConference','vsConf','CONF')
   const divStat=find(stats,'division','divisionRecord','vsDivision','vsDiv','DIV')
-  const lastTenStat=find(stats,'lastTen','last10','L10')
+  
   return {
     id:team.id||team.uid||'',
     name:team.displayName||team.name,
@@ -798,9 +806,3 @@ async function getTeamMeta(id){
 }
 
 load()
-  const parseWL=(s)=>{
-    if(typeof s!=='string') return [NaN,NaN]
-    const m=s.match(/(\d+)\s*-\s*(\d+)/)
-    if(!m) return [NaN,NaN]
-    return [parseInt(m[1]),parseInt(m[2])]
-  }

@@ -29,6 +29,7 @@ async function load(){
   const data=await fetchStandings(state.season,state.type)
   if(!data){status('Failed to load standings');return}
   const normalized=normalize(data)
+  await ensureTeamIndex()
   render(normalized)
   status('Updating splits…')
   backfillRecords(normalized).then(()=>{
@@ -146,8 +147,8 @@ function mapEntry(e,divisionName){
     name:team.displayName||team.name,
     short:team.abbreviation||'',
     logo:(team.logos?.[0]?.href)||team.logo||'',
-    conference:team.conference?.name||team.conferenceName||team.groups?.[0]?.name||'',
-    division:divisionName||team.division?.name||team.divisionName||'',
+    conference:team.conference?.name||team.conferenceName||team.groups?.[0]?.name||extractConfDiv(team).conference||'',
+    division:divisionName||team.division?.name||team.divisionName||extractConfDiv(team).division||'',
     wins,
     losses,
     pct,
@@ -172,7 +173,7 @@ function groupByScope(groups){
 
 function groupDivisions(list){
   const map={}
-  list.forEach(t=>{if(!map[t.division])map[t.division]=[];map[t.division].push(t)})
+  list.forEach(t=>{if(!t.division) return; if(!map[t.division])map[t.division]=[]; map[t.division].push(t)})
   Object.keys(map).forEach(k=>map[k]=rank(map[k]))
   return map
 }
@@ -268,14 +269,12 @@ function renderDivisions(divs){
   }
   const eastOrder=['Atlantic','Central','Southeast']
   const westOrder=['Northwest','Pacific','Southwest']
-  const divName=(t)=>{
-    const id=String(t.id)
-    const meta=teamIndex.get(id)
-    return (meta?.division)||t.division||''
-  }
-  const byDiv=(name,list)=>{
-    const filtered=(list||[]).filter(t=>String(divName(t)).toLowerCase()===String(name).toLowerCase())
-    return rank(filtered)
+  const byDiv=(name,conf)=>{
+    const fromGrouped=(window.currentData?.divisions?.[name])||[]
+    let base=fromGrouped.length?fromGrouped:((conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[])
+    if(fromGrouped.length) base=base.filter(t=>String(t.conference||'').toLowerCase()===conf.toLowerCase())
+    const out=base.filter(t=>String((t.division||extractConfDiv({groups:t.groups,division:t.division})).toString()).toLowerCase()===name.toLowerCase())
+    return rank(out)
   }
   const grid=document.createElement('div')
   grid.className='division-grid'
@@ -284,13 +283,13 @@ function renderDivisions(divs){
   const eastTitle=document.createElement('h2')
   eastTitle.textContent='Eastern Conference'
   eastSection.appendChild(eastTitle)
-  eastOrder.forEach(d=>eastSection.appendChild(makeCard(d,byDiv(d,window.currentData?.conference?.East))))
+  eastOrder.forEach(d=>eastSection.appendChild(makeCard(d,byDiv(d,'East'))))
   const westSection=document.createElement('div')
   westSection.className='conference-block'
   const westTitle=document.createElement('h2')
   westTitle.textContent='Western Conference'
   westSection.appendChild(westTitle)
-  westOrder.forEach(d=>westSection.appendChild(makeCard(d,byDiv(d,window.currentData?.conference?.West))))
+  westOrder.forEach(d=>westSection.appendChild(makeCard(d,'West')))
   grid.appendChild(eastSection)
   grid.appendChild(westSection)
   container.appendChild(grid)

@@ -40,6 +40,7 @@ async function load(){
     if(sample){
       render(sample)
       status('Showing sample data')
+      document.getElementById('embed-fallback').style.display='block'
       return
     }
     status('Failed to load standings');
@@ -53,10 +54,12 @@ async function load(){
       render(fb)
       status('Updating splits…')
       backfillRecords(fb).then(()=>{render(fb);status('Updated')}).catch(()=>status('Updated'))
+      document.getElementById('embed-fallback').style.display='none'
       return
     }
   }
   render(normalized)
+  document.getElementById('embed-fallback').style.display='none'
   status('Updating splits…')
   backfillRecords(normalized).then(()=>{
     render(normalized)

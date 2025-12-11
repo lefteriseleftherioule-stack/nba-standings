@@ -107,6 +107,11 @@ function mapEntry(e,divisionName){
   const streak=(typeof streakStat?.displayValue==='string'&&streakStat.displayValue)||rec('streak')?.summary||undefined
   const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
   const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg'))
+  const homeStat=find(stats,'home')
+  const awayStat=find(stats,'away','road')
+  const confStat=find(stats,'conference')
+  const divStat=find(stats,'division')
+  const lastTenStat=find(stats,'lastTen')
   return {
     id:team.id||team.uid||'',
     name:team.displayName||team.name,
@@ -117,15 +122,15 @@ function mapEntry(e,divisionName){
     wins,
     losses,
     pct,
-    home:fmtWL(hw,hl) || rec('home')?.summary || '-',
-    away:fmtWL(rw,rl) || rec('road')?.summary || '-',
-    conf:fmtWL(cw,cl) || rec('conference')?.summary || '-',
-    div:fmtWL(dw,dl) || rec('division')?.summary || '-',
+    home:homeStat?.summary || fmtWL(hw,hl) || rec('home')?.summary || '-',
+    away:awayStat?.summary || fmtWL(rw,rl) || rec('road')?.summary || '-',
+    conf:confStat?.summary || fmtWL(cw,cl) || rec('conference')?.summary || '-',
+    div:divStat?.summary || fmtWL(dw,dl) || rec('division')?.summary || '-',
     ppg:isNaN(ppg)?null:round(ppg,1),
     opppg:isNaN(opppg)?null:round(opppg,1),
     diff:(isNaN(ppg)||isNaN(opppg))?null:round(ppg-opppg,1),
     streak:streak||'',
-    lastTen:lts||fmtWL(ltw,ltl)
+    lastTen:lastTenStat?.summary || lts || fmtWL(ltw,ltl)
   }
 }
 

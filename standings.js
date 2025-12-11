@@ -10,12 +10,13 @@ $$('.view-btn').forEach(b=>b.addEventListener('click',e=>{
   state.scope=e.currentTarget.dataset.scope
   renderScope()
 }))
-$$('.season-btn').forEach(b=>b.addEventListener('click',e=>{
-  $$('.season-btn').forEach(x=>x.classList.remove('active'))
-  e.currentTarget.classList.add('active')
-  state.season=e.currentTarget.dataset.season
-  load()
-}))
+const seasonSel=$('#season-select')
+if(seasonSel){
+  seasonSel.addEventListener('change',e=>{
+    state.season=e.target.value
+    load()
+  })
+}
 $$('.type-btn').forEach(b=>b.addEventListener('click',e=>{
   $$('.type-btn').forEach(x=>x.classList.remove('active'))
   e.currentTarget.classList.add('active')
@@ -158,7 +159,7 @@ function mapEntry(e,divisionName){
     opppg:isNaN(opppg)?null:round(opppg,1),
     diff:(isNaN(ppg)||isNaN(opppg))?null:round(ppg-opppg,1),
     streak:streak||'',
-    lastTen:(lastTenStat?.summary||lastTenStat?.displayValue) || lts || fmtWL(ltw,ltl)
+    lastTen:(lastTenStat?.summary||lastTenStat?.displayValue) || (Number.isFinite(ltw)&&Number.isFinite(ltl)?fmtWL(ltw,ltl):undefined) || '-'
   }
 }
 
@@ -177,7 +178,11 @@ function groupDivisions(list){
 }
 
 function rank(list){
-  const s=[...list].sort((a,b)=>b.pct-a.pct||b.wins-a.wins||a.losses-b.losses||a.name.localeCompare(b.name))
+  const s=[...list].sort((a,b)=>{
+    const ap=(typeof a.pct==='number')?a.pct:(a.wins+a.losses?a.wins/(a.losses+a.wins):0)
+    const bp=(typeof b.pct==='number')?b.pct:(b.wins+b.losses?b.wins/(b.losses+b.wins):0)
+    return bp-ap || b.wins-a.wins || a.losses-b.losses || a.name.localeCompare(b.name)
+  })
   s.forEach((t,i)=>t.rank=i+1)
   const lead=s[0]
   s.forEach(t=>t.gb=lead?(Math.abs((lead.wins-t.wins)+(t.losses-lead.losses))/2):0)
@@ -206,8 +211,8 @@ function renderScope(){
 }
 
 function renderConference(conf){
-  fillTable($('#east-body'),conf.East,{showOrdinal:true})
-  fillTable($('#west-body'),conf.West,{showOrdinal:true})
+  fillTable($('#east-body'),conf.East,{showOrdinal:false})
+  fillTable($('#west-body'),conf.West,{showOrdinal:false})
 }
 
 function renderLeague(list){
@@ -223,7 +228,6 @@ function renderDivisions(divs){
     const thead=document.createElement('thead')
     thead.innerHTML=`
       <tr>
-        <th class="team">Team</th>
         <th>W</th>
         <th>L</th>
         <th>PCT</th>
@@ -259,9 +263,9 @@ function renderDivisions(divs){
   }
   const eastOrder=['Atlantic','Central','Southeast']
   const westOrder=['Northwest','Pacific','Southwest']
-  const byDiv=(name,conf)=>{
-    const list=(conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[]
-    return rank(list.filter(t=>String(t.division||'').toLowerCase()===name.toLowerCase()))
+  const byDiv=(name)=>{
+    const list=(window.currentData?.divisions?.[name])||[]
+    return rank(list)
   }
   const grid=document.createElement('div')
   grid.className='division-grid'
@@ -283,18 +287,12 @@ function renderDivisions(divs){
 }
 
 function fillTable(tbody,teams,opts={}){
-  const showOrdinal=!!opts.showOrdinal
   tbody.innerHTML=''
   teams.forEach(t=>{
     const tr=document.createElement('tr')
-    const fallbackLogo=t.short?`https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${t.short.toLowerCase()}.png`:''
-    const logoSrc=t.logo||fallbackLogo
-    const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="">`:''
     const diffClass=t.diff==null?'':(t.diff>=0?'pos-good':'pos-bad')
     const gbDisplay=(t.gb===0)?'-':round(t.gb,1)
-    const ord=showOrdinal?`<span class="ordinal">No. ${t.rank}</span> `:''
     tr.innerHTML=`
-      <td class="team"><div class="team-cell">${logo}<span>${ord}${t.name}</span></div></td>
       <td>${t.wins}</td>
       <td>${t.losses}</td>
       <td>${round(t.pct,3).toFixed(3)}</td>

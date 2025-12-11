@@ -1,4 +1,6 @@
 const state={season:'2025',type:'2',scope:'conference'}
+const teamIndex=new Map()
+const teamDetailCache=new Map()
 const $=s=>document.querySelector(s)
 const $$=s=>Array.from(document.querySelectorAll(s))
 const statusEl=$('#status')
@@ -359,6 +361,7 @@ async function fetchCoreRecordAndApply(team,idMap){
 }
 
 async function backfillSchedule(data,idMap){
+  await ensureTeamIndex()
   const all=data.league
   const queue=all.map(t=>()=>fetchScheduleAndApply(t,idMap))
   const limit=6
@@ -380,12 +383,13 @@ async function fetchScheduleAndApply(team,idMap){
     const j=await r.json()
     const events=j.events||j.items||[]
     if(!events.length) return
-    let hw=0,hl=0,rw=0,rl=0
+    let hw=0,hl=0,rw=0,rl=0,cw=0,cl=0,dw=0,dl=0
     const results=[]
     events.forEach(ev=>{
       const comp=(ev.competitions&&ev.competitions[0])||ev.competition||null
       const comps=(comp&&comp.competitors)||[]
       const me=comps.find(c=>String(c.team?.id||c.id)===String(team.id))
+      const opp=comps.find(c=>String(c.team?.id||c.id)!==String(team.id))
       if(!me) return
       const done=(comp?.status?.type?.completed===true)||(comp?.status?.type?.state==='post')
       if(!done) return
@@ -393,6 +397,14 @@ async function fetchScheduleAndApply(team,idMap){
       results.push(win)
       if(me.homeAway==='home'){ if(win) hw++; else hl++; }
       else { if(win) rw++; else rl++; }
+      const oppId=String(opp?.team?.id||opp?.id||'')
+      if(oppId){
+        const meta=await getTeamMeta(oppId)
+        if(meta){
+          if(meta.conference){ if(win) cw++; else cl++; }
+          if(meta.division){ if(win) dw++; else dl++; }
+        }
+      }
     })
     const updated=idMap.get(String(team.id))||team
     const last=results.slice(-10)
@@ -403,9 +415,67 @@ async function fetchScheduleAndApply(team,idMap){
     updated.home=(Number.isFinite(hw)&&Number.isFinite(hl))?`${hw}-${hl}`:updated.home
     updated.away=(Number.isFinite(rw)&&Number.isFinite(rl))?`${rw}-${rl}`:updated.away
     updated.lastTen=(last.length?`${ltw}-${ltl}`:updated.lastTen)
+    updated.conf=(Number.isFinite(cw)&&Number.isFinite(cl))?`${cw}-${cl}`:updated.conf
+    updated.div=(Number.isFinite(dw)&&Number.isFinite(dl))?`${dw}-${dl}`:updated.div
     if(streakLen>0) updated.streak=`W${streakLen}`
     else if(losingLen>0) updated.streak=`L${losingLen}`
   }catch(e){return}
+}
+
+async function ensureTeamIndex(){
+  if(teamIndex.size>0) return
+  const urls=[
+    'https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams?region=us&lang=en',
+    'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams'
+  ]
+  for(const u of urls){
+    try{
+      const r=await fetch(u,{cache:'no-store'})
+      if(!r.ok) continue
+      const j=await r.json()
+      const list=(j.teams)|| (j.sports?.[0]?.leagues?.[0]?.teams)|| []
+      list.forEach(t=>{
+        const obj=t.team||t
+        const id=String(obj.id)
+        const meta=extractConfDiv(obj)
+        if(id && (meta.conference||meta.division)) teamIndex.set(id,meta)
+      })
+      if(teamIndex.size>0) break
+    }catch(e){continue}
+  }
+}
+
+function extractConfDiv(team){
+  const conference=(team.conference?.name)||(team.groups?.[0]?.name)||(team.group?.name)||''
+  let division=''
+  if(team.division?.name) division=team.division.name
+  else if(Array.isArray(team.groups)){
+    const d=team.groups.find(g=>/division/i.test(g.name||g.abbreviation||''))
+    if(d) division=d.name
+  }
+  return {conference,division}
+}
+
+async function getTeamMeta(id){
+  if(teamIndex.has(id)) return teamIndex.get(id)
+  if(teamDetailCache.has(id)) return teamDetailCache.get(id)
+  const urls=[
+    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams/${id}?region=us&lang=en`,
+    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${id}`,
+    `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/teams/${id}`
+  ]
+  for(const u of urls){
+    try{
+      const r=await fetch(u,{cache:'no-store'})
+      if(!r.ok) continue
+      const j=await r.json()
+      const team=j.team||j
+      const meta=extractConfDiv(team)
+      teamDetailCache.set(id,meta)
+      return meta
+    }catch(e){continue}
+  }
+  return null
 }
 
 load()

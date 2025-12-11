@@ -151,12 +151,12 @@ function mapEntry(e,divisionName){
     })
   }
   const overallRec=rec('overall','total','overallRecord')
-  let wins=(overallRec?.wins)!=null?parseInt(overallRec.wins):parseInt(sv(stats,'wins','totalWins','overallWins'))
-  let losses=(overallRec?.losses)!=null?parseInt(overallRec.losses):parseInt(sv(stats,'losses','totalLosses','overallLosses'))
+  let wins=(overallRec?.wins)!=null?parseInt(overallRec.wins):NaN
+  let losses=(overallRec?.losses)!=null?parseInt(overallRec.losses):NaN
   if(!Number.isFinite(wins) || !Number.isFinite(losses)){
     const [pw,pl]=parseWL(overallRec?.summary||sv(stats,'overallRecord','record'))
-    if(Number.isFinite(pw)) wins=pw
-    if(Number.isFinite(pl)) losses=pl
+    wins=Number.isFinite(pw)?pw:0
+    losses=Number.isFinite(pl)?pl:0
   }
   wins=wins||0; losses=losses||0
   let pct=sv(stats,'winPercent','winPct','pct','percentage')
@@ -180,8 +180,8 @@ function mapEntry(e,divisionName){
   }
   const streakStat=find(stats,'streak')
   const streak=(typeof streakStat?.displayValue==='string'&&streakStat.displayValue)||rec('streak')?.summary||undefined
-  const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
-  const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg'))
+  const ppg=NaN
+  const opppg=NaN
   const homeStat=find(stats,'home')
   const awayStat=find(stats,'away','road')
   const confStat=find(stats,'conference','conferenceRecord','vsConference','vsConf','CONF')
@@ -201,9 +201,9 @@ function mapEntry(e,divisionName){
     away:awayStat?.summary || fmtWL(rw,rl) || rec('road')?.summary || '-',
     conf:(confStat?.summary||confStat?.displayValue)|| fmtWL(cw,cl) || (rec('conference','conf','conferenceRecord','vsConference','vsConf','CONF')?.summary||rec('conference','conf','conferenceRecord','vsConference','vsConf','CONF')?.displayValue) || '-',
     div:(divStat?.summary||divStat?.displayValue) || fmtWL(dw,dl) || (rec('division','div','divisionRecord','vsDivision','vsDiv','DIV')?.summary||rec('division','div','divisionRecord','vsDivision','vsDiv','DIV')?.displayValue) || '-',
-    ppg:isNaN(ppg)?null:round(ppg,1),
-    opppg:isNaN(opppg)?null:round(opppg,1),
-    diff:(isNaN(ppg)||isNaN(opppg))?null:round(ppg-opppg,1),
+    ppg:null,
+    opppg:null,
+    diff:null,
     streak:streak||'',
     lastTen:(lastTenStat?.summary||lastTenStat?.displayValue) || (Number.isFinite(ltw)&&Number.isFinite(ltl)?fmtWL(ltw,ltl):undefined) || '-'
   }
@@ -589,6 +589,7 @@ async function fetchScheduleAndApply(team,idMap,confById,divById){
     const events=j.events||j.items||[]
     if(!events.length) return
     let hw=0,hl=0,rw=0,rl=0,cw=0,cl=0,dw=0,dl=0
+    let sumFor=0,sumAgainst=0,games=0
     const results=[]
     const selfId=String(team.id)
     const selfConf=confById.get(selfId) || (await getTeamMeta(selfId))?.conference || ''
@@ -605,6 +606,13 @@ async function fetchScheduleAndApply(team,idMap,confById,divById){
       results.push(win)
       if(me.homeAway==='home'){ if(win) hw++; else hl++; }
       else { if(win) rw++; else rl++; }
+      const myScoreNum=Number.parseInt(me.score?.toString()||'0')
+      const oppScoreNum=Number.parseInt(opp?.score?.toString()||'0')
+      if(Number.isFinite(myScoreNum) && Number.isFinite(oppScoreNum)){
+        sumFor+=myScoreNum
+        sumAgainst+=oppScoreNum
+        games++
+      }
       const oppId=String(opp?.team?.id||opp?.id||'')
       if(oppId){
         const oppConf=confById.get(oppId) || (await getTeamMeta(oppId))?.conference || ''
@@ -626,6 +634,13 @@ async function fetchScheduleAndApply(team,idMap,confById,divById){
     updated.div=(Number.isFinite(dw)&&Number.isFinite(dl))?`${dw}-${dl}`:updated.div
     if(streakLen>0) updated.streak=`W${streakLen}`
     else if(losingLen>0) updated.streak=`L${losingLen}`
+    if(games>0){
+      const p=round(sumFor/games,1)
+      const o=round(sumAgainst/games,1)
+      updated.ppg=p
+      updated.opppg=o
+      updated.diff=round(p-o,1)
+    }
   }catch(e){return}
 }
 

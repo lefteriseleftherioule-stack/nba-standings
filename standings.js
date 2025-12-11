@@ -182,8 +182,8 @@ function mapEntry(e,divisionName){
   }
   const streakStat=find(stats,'streak')
   const streak=(typeof streakStat?.displayValue==='string'&&streakStat.displayValue)||rec('streak')?.summary||undefined
-  const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
-  const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg'))
+  const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg','pointsForAverage','pointsScoredPerGame'))
+  const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg','pointsAgainstAverage','pointsAllowedPerGame'))
   const homeStat=find(stats,'home')
   const awayStat=find(stats,'away','road')
   const confStat=find(stats,'conference','conferenceRecord','vsConference','vsConf','CONF')
@@ -613,14 +613,14 @@ async function fetchScheduleAndApply(team,idMap,confById,divById){
       if(!me) continue
       const done=(comp?.status?.type?.completed===true)||(comp?.status?.type?.state==='post')
       if(!done) continue
-      const win=!!me.winner
-      results.push(win)
-      if(me.homeAway==='home'){ if(win) hw++; else hl++; }
-      else { if(win) rw++; else rl++; }
       const myScoreRaw=(me?.score?.value ?? me?.score ?? me?.score?.displayValue ?? (me?.linescores?.[0]?.value))
       const oppScoreRaw=(opp?.score?.value ?? opp?.score ?? opp?.score?.displayValue ?? (opp?.linescores?.[0]?.value))
       const myScoreNum=Number.parseFloat(String(myScoreRaw||'0'))
       const oppScoreNum=Number.parseFloat(String(oppScoreRaw||'0'))
+      const win=(me?.winner===true) || (Number.isFinite(myScoreNum) && Number.isFinite(oppScoreNum) ? myScoreNum>oppScoreNum : false)
+      results.push(win)
+      if(me.homeAway==='home'){ if(win) hw++; else hl++; }
+      else { if(win) rw++; else rl++; }
       if(Number.isFinite(myScoreNum) && Number.isFinite(oppScoreNum)){
         sumFor+=myScoreNum
         sumAgainst+=oppScoreNum

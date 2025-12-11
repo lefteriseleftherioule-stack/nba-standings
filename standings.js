@@ -385,14 +385,14 @@ async function fetchScheduleAndApply(team,idMap){
     if(!events.length) return
     let hw=0,hl=0,rw=0,rl=0,cw=0,cl=0,dw=0,dl=0
     const results=[]
-    events.forEach(ev=>{
+    for(const ev of events){
       const comp=(ev.competitions&&ev.competitions[0])||ev.competition||null
       const comps=(comp&&comp.competitors)||[]
       const me=comps.find(c=>String(c.team?.id||c.id)===String(team.id))
       const opp=comps.find(c=>String(c.team?.id||c.id)!==String(team.id))
-      if(!me) return
+      if(!me) continue
       const done=(comp?.status?.type?.completed===true)||(comp?.status?.type?.state==='post')
-      if(!done) return
+      if(!done) continue
       const win=!!me.winner
       results.push(win)
       if(me.homeAway==='home'){ if(win) hw++; else hl++; }
@@ -405,7 +405,7 @@ async function fetchScheduleAndApply(team,idMap){
           if(meta.division){ if(win) dw++; else dl++; }
         }
       }
-    })
+    }
     const updated=idMap.get(String(team.id))||team
     const last=results.slice(-10)
     const ltw=last.filter(Boolean).length

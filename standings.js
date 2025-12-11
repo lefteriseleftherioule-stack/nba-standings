@@ -368,7 +368,14 @@ async function fetchCoreRecordAndApply(team,idMap){
 async function backfillSchedule(data,idMap){
   await ensureTeamIndex()
   const all=data.league
-  const queue=all.map(t=>()=>fetchScheduleAndApply(t,idMap))
+  const confById=new Map()
+  data.conference.East.forEach(t=>confById.set(String(t.id),'East'))
+  data.conference.West.forEach(t=>confById.set(String(t.id),'West'))
+  const divById=new Map()
+  Object.entries(data.divisions).forEach(([name,teams])=>{
+    teams.forEach(t=>divById.set(String(t.id),name))
+  })
+  const queue=all.map(t=>()=>fetchScheduleAndApply(t,idMap,confById,divById))
   const limit=8
   let index=0
   const workers=Array.from({length:limit}).map(async()=>{
@@ -380,7 +387,7 @@ async function backfillSchedule(data,idMap){
   await Promise.all(workers)
 }
 
-async function fetchScheduleAndApply(team,idMap){
+async function fetchScheduleAndApply(team,idMap,confById,divById){
   const u=`https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams/${team.id}/schedule?season=${state.season}&seasontype=${state.type}&region=us&lang=en`
   try{
     const r=await fetch(u,{cache:'no-store'})
@@ -390,7 +397,9 @@ async function fetchScheduleAndApply(team,idMap){
     if(!events.length) return
     let hw=0,hl=0,rw=0,rl=0,cw=0,cl=0,dw=0,dl=0
     const results=[]
-    const selfMeta=await getTeamMeta(String(team.id))
+    const selfId=String(team.id)
+    const selfConf=confById.get(selfId) || (await getTeamMeta(selfId))?.conference || ''
+    const selfDiv=divById.get(selfId) || (await getTeamMeta(selfId))?.division || ''
     for(const ev of events){
       const comp=(ev.competitions&&ev.competitions[0])||ev.competition||null
       const comps=(comp&&comp.competitors)||[]
@@ -405,15 +414,10 @@ async function fetchScheduleAndApply(team,idMap){
       else { if(win) rw++; else rl++; }
       const oppId=String(opp?.team?.id||opp?.id||'')
       if(oppId){
-        const meta=await getTeamMeta(oppId)
-        if(meta){
-          if(selfMeta?.conference && meta.conference && meta.conference===selfMeta.conference){
-            if(win) cw++; else cl++
-          }
-          if(selfMeta?.division && meta.division && meta.division===selfMeta.division){
-            if(win) dw++; else dl++
-          }
-        }
+        const oppConf=confById.get(oppId) || (await getTeamMeta(oppId))?.conference || ''
+        const oppDiv=divById.get(oppId) || (await getTeamMeta(oppId))?.division || ''
+        if(selfConf && oppConf && oppConf===selfConf){ if(win) cw++; else cl++; }
+        if(selfDiv && oppDiv && oppDiv===selfDiv){ if(win) dw++; else dl++; }
       }
     }
     const updated=idMap.get(String(team.id))||team

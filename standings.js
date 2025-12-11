@@ -85,18 +85,36 @@ function mapEntry(e,divisionName){
   const team=e.team||e
   const stats=e.stats||e.statsItems||e.record||[]
   const records=e.records||[]
-  const find=(arr,...names)=>Array.isArray(arr)?arr.find(x=>names.some(n=>x.name===n||x.type===n||x.abbreviation===n)):undefined
+  const find=(arr,...names)=>{
+    if(!Array.isArray(arr)) return undefined
+    const norm=names.map(n=>String(n).toLowerCase())
+    return arr.find(x=>{
+      const nm=String(x.name||'').toLowerCase()
+      const tp=String(x.type||'').toLowerCase()
+      const ab=String(x.abbreviation||'').toLowerCase()
+      return norm.some(n=>nm===n||tp===n||ab===n)
+    })
+  }
   const sv=(arr,...names)=>{
     if(!Array.isArray(arr)) return undefined
-    for(const n of names){
-      const f=arr.find(x=>x.name===n||x.type===n||x.abbreviation===n)
-      if(f) return f.value??f.displayValue
+    const norm=names.map(n=>String(n).toLowerCase())
+    for(const x of arr){
+      const nm=String(x.name||'').toLowerCase()
+      const tp=String(x.type||'').toLowerCase()
+      const ab=String(x.abbreviation||'').toLowerCase()
+      if(norm.some(n=>nm===n||tp===n||ab===n)) return x.value??x.displayValue
     }
     return undefined
   }
   const rec=(...names)=>{
     if(!Array.isArray(records)) return undefined
-    return records.find(r=>names.some(n=>r.name===n||r.type===n||r.abbreviation===n))
+    const norm=names.map(n=>String(n).toLowerCase())
+    return records.find(r=>{
+      const nm=String(r.name||'').toLowerCase()
+      const tp=String(r.type||'').toLowerCase()
+      const ab=String(r.abbreviation||'').toLowerCase()
+      return norm.some(n=>nm===n||tp===n||ab===n)
+    })
   }
   const wins=(rec('overall')?.wins)!=null?parseInt(rec('overall').wins):parseInt(sv(stats,'wins'))||0
   const losses=(rec('overall')?.losses)!=null?parseInt(rec('overall').losses):parseInt(sv(stats,'losses'))||0
@@ -119,8 +137,8 @@ function mapEntry(e,divisionName){
   const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg'))
   const homeStat=find(stats,'home')
   const awayStat=find(stats,'away','road')
-  const confStat=find(stats,'conference','conferenceRecord')
-  const divStat=find(stats,'division','divisionRecord')
+  const confStat=find(stats,'conference','conferenceRecord','vsConference','vsConf','CONF')
+  const divStat=find(stats,'division','divisionRecord','vsDivision','vsDiv','DIV')
   const lastTenStat=find(stats,'lastTen','last10','L10')
   return {
     id:team.id||team.uid||'',
@@ -134,8 +152,8 @@ function mapEntry(e,divisionName){
     pct,
     home:homeStat?.summary || fmtWL(hw,hl) || rec('home')?.summary || '-',
     away:awayStat?.summary || fmtWL(rw,rl) || rec('road')?.summary || '-',
-    conf:(confStat?.summary||confStat?.displayValue)|| fmtWL(cw,cl) || (rec('conference','conf','conferenceRecord')?.summary||rec('conference','conf','conferenceRecord')?.displayValue) || '-',
-    div:(divStat?.summary||divStat?.displayValue) || fmtWL(dw,dl) || (rec('division','div','divisionRecord')?.summary||rec('division','div','divisionRecord')?.displayValue) || '-',
+    conf:(confStat?.summary||confStat?.displayValue)|| fmtWL(cw,cl) || (rec('conference','conf','conferenceRecord','vsConference','vsConf','CONF')?.summary||rec('conference','conf','conferenceRecord','vsConference','vsConf','CONF')?.displayValue) || '-',
+    div:(divStat?.summary||divStat?.displayValue) || fmtWL(dw,dl) || (rec('division','div','divisionRecord','vsDivision','vsDiv','DIV')?.summary||rec('division','div','divisionRecord','vsDivision','vsDiv','DIV')?.displayValue) || '-',
     ppg:isNaN(ppg)?null:round(ppg,1),
     opppg:isNaN(opppg)?null:round(opppg,1),
     diff:(isNaN(ppg)||isNaN(opppg))?null:round(ppg-opppg,1),
@@ -287,6 +305,7 @@ async function backfillRecords(data){
     applyToArray(data.conference.East)
     applyToArray(data.conference.West)
     Object.keys(data.divisions).forEach(k=>applyToArray(data.divisions[k]))
+    data.league=rank([...data.conference.East,...data.conference.West])
   }catch(e){/* ignore backfill errors */}
 }
 

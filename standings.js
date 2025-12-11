@@ -49,6 +49,7 @@ async function load(){
     return
   }
   const normalized=normalize(data)
+  await ensureTeamIndex()
   if((normalized.league?.length||0)===0){
     const fb=await buildStandingsFallback()
     if(fb && (fb.league?.length||0)>0){
@@ -151,12 +152,12 @@ function mapEntry(e,divisionName){
     })
   }
   const overallRec=rec('overall','total','overallRecord')
-  let wins=(overallRec?.wins)!=null?parseInt(overallRec.wins):NaN
-  let losses=(overallRec?.losses)!=null?parseInt(overallRec.losses):NaN
+  let wins=(overallRec?.wins)!=null?parseInt(overallRec.wins):parseInt(sv(stats,'wins','totalWins','overallWins'))
+  let losses=(overallRec?.losses)!=null?parseInt(overallRec.losses):parseInt(sv(stats,'losses','totalLosses','overallLosses'))
   if(!Number.isFinite(wins) || !Number.isFinite(losses)){
     const [pw,pl]=parseWL(overallRec?.summary||sv(stats,'overallRecord','record'))
-    wins=Number.isFinite(pw)?pw:0
-    losses=Number.isFinite(pl)?pl:0
+    if(Number.isFinite(pw)) wins=pw
+    if(Number.isFinite(pl)) losses=pl
   }
   wins=wins||0; losses=losses||0
   let pct=sv(stats,'winPercent','winPct','pct','percentage')
@@ -180,8 +181,8 @@ function mapEntry(e,divisionName){
   }
   const streakStat=find(stats,'streak')
   const streak=(typeof streakStat?.displayValue==='string'&&streakStat.displayValue)||rec('streak')?.summary||undefined
-  const ppg=NaN
-  const opppg=NaN
+  const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
+  const opppg=parseFloat(sv(stats,'opponentPointsPerGame','avgPointsAgainst','pointsAgainst','oppg'))
   const homeStat=find(stats,'home')
   const awayStat=find(stats,'away','road')
   const confStat=find(stats,'conference','conferenceRecord','vsConference','vsConf','CONF')
@@ -201,9 +202,9 @@ function mapEntry(e,divisionName){
     away:awayStat?.summary || fmtWL(rw,rl) || rec('road')?.summary || '-',
     conf:(confStat?.summary||confStat?.displayValue)|| fmtWL(cw,cl) || (rec('conference','conf','conferenceRecord','vsConference','vsConf','CONF')?.summary||rec('conference','conf','conferenceRecord','vsConference','vsConf','CONF')?.displayValue) || '-',
     div:(divStat?.summary||divStat?.displayValue) || fmtWL(dw,dl) || (rec('division','div','divisionRecord','vsDivision','vsDiv','DIV')?.summary||rec('division','div','divisionRecord','vsDivision','vsDiv','DIV')?.displayValue) || '-',
-    ppg:null,
-    opppg:null,
-    diff:null,
+    ppg:isNaN(ppg)?null:round(ppg,1),
+    opppg:isNaN(opppg)?null:round(opppg,1),
+    diff:(isNaN(ppg)||isNaN(opppg))?null:round(ppg-opppg,1),
     streak:streak||'',
     lastTen:(lastTenStat?.summary||lastTenStat?.displayValue) || (Number.isFinite(ltw)&&Number.isFinite(ltl)?fmtWL(ltw,ltl):undefined) || '-'
   }
@@ -315,10 +316,16 @@ function renderDivisions(divs){
   const eastOrder=['Atlantic','Central','Southeast']
   const westOrder=['Northwest','Pacific','Southwest']
   const byDiv=(name,conf)=>{
-    const fromGrouped=(window.currentData?.divisions?.[name])||[]
-    let base=fromGrouped.length?fromGrouped:((conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[])
-    if(fromGrouped.length) base=base.filter(t=>String(t.conference||'').toLowerCase()===conf.toLowerCase())
-    const out=base.filter(t=>String((t.division||extractConfDiv({groups:t.groups,division:t.division})).toString()).toLowerCase()===name.toLowerCase())
+    const grouped=(window.currentData?.divisions?.[name])||[]
+    if(grouped.length){
+      return rank(grouped.filter(t=>String(t.conference||'').toLowerCase()===conf.toLowerCase()))
+    }
+    const base=(conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[]
+    const out=base.filter(t=>{
+      const meta=teamIndex.get(String(t.id))||{}
+      const divName=t.division||meta.division||''
+      return String(divName).toLowerCase()===name.toLowerCase()
+    })
     return rank(out)
   }
   const grid=document.createElement('div')
@@ -606,8 +613,10 @@ async function fetchScheduleAndApply(team,idMap,confById,divById){
       results.push(win)
       if(me.homeAway==='home'){ if(win) hw++; else hl++; }
       else { if(win) rw++; else rl++; }
-      const myScoreNum=Number.parseInt(me.score?.toString()||'0')
-      const oppScoreNum=Number.parseInt(opp?.score?.toString()||'0')
+      const myScoreRaw=(me?.score?.value ?? me?.score ?? me?.score?.displayValue ?? (me?.linescores?.[0]?.value))
+      const oppScoreRaw=(opp?.score?.value ?? opp?.score ?? opp?.score?.displayValue ?? (opp?.linescores?.[0]?.value))
+      const myScoreNum=Number.parseFloat(String(myScoreRaw||'0'))
+      const oppScoreNum=Number.parseFloat(String(oppScoreRaw||'0'))
       if(Number.isFinite(myScoreNum) && Number.isFinite(oppScoreNum)){
         sumFor+=myScoreNum
         sumAgainst+=oppScoreNum

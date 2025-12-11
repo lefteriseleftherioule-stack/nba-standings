@@ -211,8 +211,8 @@ function renderScope(){
 }
 
 function renderConference(conf){
-  fillTable($('#east-body'),conf.East,{showOrdinal:false})
-  fillTable($('#west-body'),conf.West,{showOrdinal:false})
+  fillTable($('#east-body'),conf.East,{showOrdinal:true})
+  fillTable($('#west-body'),conf.West,{showOrdinal:true})
 }
 
 function renderLeague(list){
@@ -228,6 +228,7 @@ function renderDivisions(divs){
     const thead=document.createElement('thead')
     thead.innerHTML=`
       <tr>
+        <th></th>
         <th>W</th>
         <th>L</th>
         <th>PCT</th>
@@ -287,12 +288,18 @@ function renderDivisions(divs){
 }
 
 function fillTable(tbody,teams,opts={}){
+  const showOrdinal=!!opts.showOrdinal
   tbody.innerHTML=''
   teams.forEach(t=>{
     const tr=document.createElement('tr')
+    const fallbackLogo=t.short?`https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${t.short.toLowerCase()}.png`:''
+    const logoSrc=t.logo||fallbackLogo
+    const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="">`:''
     const diffClass=t.diff==null?'':(t.diff>=0?'pos-good':'pos-bad')
     const gbDisplay=(t.gb===0)?'-':round(t.gb,1)
+    const ord=showOrdinal?`<span class="ordinal">No. ${t.rank}</span> `:''
     tr.innerHTML=`
+      <td class="team"><div class="team-cell">${logo}<span>${ord}${t.name}</span></div></td>
       <td>${t.wins}</td>
       <td>${t.losses}</td>
       <td>${round(t.pct,3).toFixed(3)}</td>

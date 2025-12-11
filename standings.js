@@ -94,7 +94,10 @@ function mapEntry(e,divisionName){
     }
     return undefined
   }
-  const rec=(n)=>Array.isArray(records)?records.find(r=>r.name===n):undefined
+  const rec=(...names)=>{
+    if(!Array.isArray(records)) return undefined
+    return records.find(r=>names.some(n=>r.name===n||r.type===n||r.abbreviation===n))
+  }
   const wins=(rec('overall')?.wins)!=null?parseInt(rec('overall').wins):parseInt(sv(stats,'wins'))||0
   const losses=(rec('overall')?.losses)!=null?parseInt(rec('overall').losses):parseInt(sv(stats,'losses'))||0
   let pct=sv(stats,'winPercent','percentage')
@@ -131,13 +134,13 @@ function mapEntry(e,divisionName){
     pct,
     home:homeStat?.summary || fmtWL(hw,hl) || rec('home')?.summary || '-',
     away:awayStat?.summary || fmtWL(rw,rl) || rec('road')?.summary || '-',
-    conf:confStat?.summary || fmtWL(cw,cl) || rec('conference')?.summary || '-',
-    div:divStat?.summary || fmtWL(dw,dl) || rec('division')?.summary || '-',
+    conf:(confStat?.summary||confStat?.displayValue)|| fmtWL(cw,cl) || (rec('conference','conf','conferenceRecord')?.summary||rec('conference','conf','conferenceRecord')?.displayValue) || '-',
+    div:(divStat?.summary||divStat?.displayValue) || fmtWL(dw,dl) || (rec('division','div','divisionRecord')?.summary||rec('division','div','divisionRecord')?.displayValue) || '-',
     ppg:isNaN(ppg)?null:round(ppg,1),
     opppg:isNaN(opppg)?null:round(opppg,1),
     diff:(isNaN(ppg)||isNaN(opppg))?null:round(ppg-opppg,1),
     streak:streak||'',
-    lastTen:lastTenStat?.summary || lts || fmtWL(ltw,ltl)
+    lastTen:(lastTenStat?.summary||lastTenStat?.displayValue) || lts || fmtWL(ltw,ltl)
   }
 }
 

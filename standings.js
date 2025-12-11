@@ -30,6 +30,15 @@ async function load(){
   if(!data){status('Failed to load standings');return}
   const normalized=normalize(data)
   await ensureTeamIndex()
+  if((normalized.league?.length||0)===0){
+    const fb=await buildStandingsFallback()
+    if(fb && (fb.league?.length||0)>0){
+      render(fb)
+      status('Updating splits…')
+      backfillRecords(fb).then(()=>{render(fb);status('Updated')}).catch(()=>status('Updated'))
+      return
+    }
+  }
   render(normalized)
   status('Updating splits…')
   backfillRecords(normalized).then(()=>{
@@ -630,6 +639,99 @@ function extractConfDiv(team){
     if(d) division=d.name
   }
   return {conference,division}
+}
+
+async function buildStandingsFallback(){
+  try{
+    const urls=[
+      'https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams?region=us&lang=en',
+      'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams'
+    ]
+    let list=[]
+    for(const u of urls){
+      try{
+        const r=await fetch(u,{cache:'no-store'})
+        if(!r.ok) continue
+        const j=await r.json()
+        const arr=(j.teams)|| (j.sports?.[0]?.leagues?.[0]?.teams)|| []
+        list=arr.map(t=>t.team||t)
+        if(list.length) break
+      }catch(e){continue}
+    }
+    if(!list.length) return null
+    const baseEntries=list.map(team=>{
+      const meta=extractConfDiv(team)
+      return {
+        id:String(team.id||''),
+        name:team.displayName||team.name||'',
+        short:team.abbreviation||'',
+        logo:(team.logos?.[0]?.href)||team.logo||'',
+        conference:meta.conference,
+        division:meta.division,
+        wins:0,losses:0,pct:0,
+        home:'-',away:'-',div:'-',conf:'-',ppg:null,opppg:null,diff:null,streak:'',lastTen:'-'
+      }
+    })
+    const idMap=new Map(baseEntries.map(t=>[String(t.id),t]))
+    const queue=baseEntries.map(t=>()=>fetchOverallForTeam(t.id,idMap))
+    const limit=8
+    let index=0
+    const workers=Array.from({length:limit}).map(async()=>{
+      while(index<queue.length){
+        const fn=queue[index++]
+        await fn()
+      }
+    })
+    await Promise.all(workers)
+    const east=rank(baseEntries.filter(t=>t.conference==='East'))
+    const west=rank(baseEntries.filter(t=>t.conference==='West'))
+    const league=rank([...east,...west])
+    const divisions=groupDivisions(league)
+    return {conference:{East:east,West:west},league,divisions}
+  }catch(e){return null}
+}
+
+async function fetchOverallForTeam(teamId,idMap){
+  const endpoints=[
+    `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${teamId}/record?lang=en&region=us`,
+    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams/${teamId}?region=us&lang=en`,
+    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}`
+  ]
+  const parseWL=(s)=>{ if(typeof s!=='string') return [NaN,NaN]; const m=s.match(/(\d+)\s*-\s*(\d+)/); return m?[parseInt(m[1]),parseInt(m[2])]:[NaN,NaN] }
+  try{
+    let wins,losses
+    for(const u of endpoints){
+      try{
+        const r=await fetch(u,{cache:'no-store'})
+        if(!r.ok) continue
+        const j=await r.json()
+        // core: j.items -> fetch each, find overall
+        if(Array.isArray(j.items) && j.items.length){
+          const ds=await Promise.all(j.items.slice(0,12).map(async it=>{
+            try{const rr=await fetch(`${it.href}?lang=en&region=us`,{cache:'no-store'}); if(!rr.ok) return null; return await rr.json()}catch(e){return null}
+          }))
+          const overall=ds.find(d=>d&&( /overall/i.test(d.type||'') || /overall/i.test(d.name||'') ))
+          if(overall){ wins=overall.wins; losses=overall.losses; if(!Number.isFinite(wins)||!Number.isFinite(losses)){ const [w,l]=parseWL(overall.summary||overall.displayValue); wins=w; losses=l }
+          }
+        }
+        // site web/api: record.items present
+        const items=j.record?.items||j.team?.record?.items||[]
+        if(items.length && (!Number.isFinite(wins) || !Number.isFinite(losses))){
+          const ds=await Promise.all(items.slice(0,12).map(async it=>{ try{const rr=await fetch(it.href?.includes('http')?it.href:`${it.href}?lang=en&region=us`,{cache:'no-store'}); if(!rr.ok) return null; return await rr.json()}catch(e){return null} }))
+          const overall=ds.find(d=>d&&( /overall/i.test(d.type||'') || /overall/i.test(d.name||'') ))
+          if(overall){ wins=overall.wins; losses=overall.losses; if(!Number.isFinite(wins)||!Number.isFinite(losses)){ const [w,l]=parseWL(overall.summary||overall.displayValue); wins=w; losses=l }
+          }
+        }
+        if(Number.isFinite(wins) && Number.isFinite(losses)) break
+      }catch(e){continue}
+    }
+    const t=idMap.get(String(teamId))
+    if(t){
+      t.wins=Number.isFinite(wins)?wins:0
+      t.losses=Number.isFinite(losses)?losses:0
+      t.pct=(t.wins+t.losses)?(t.wins/(t.wins+t.losses)):0
+    }
+  }catch(e){return}
 }
 
 async function getTeamMeta(id){

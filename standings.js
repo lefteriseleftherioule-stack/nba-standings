@@ -191,6 +191,7 @@ function fmtWL(w,l){
 }
 
 function render(data){
+  window.currentData=data
   renderConference(data.conference)
   renderLeague(data.league)
   renderDivisions(data.divisions)
@@ -205,41 +206,84 @@ function renderScope(){
 }
 
 function renderConference(conf){
-  fillTable($('#east-body'),conf.East)
-  fillTable($('#west-body'),conf.West)
+  fillTable($('#east-body'),conf.East,{showOrdinal:true})
+  fillTable($('#west-body'),conf.West,{showOrdinal:true})
 }
 
 function renderLeague(list){
-  fillTable($('#league-body'),list)
+  fillTable($('#league-body'),list,{showOrdinal:false})
 }
 
 function renderDivisions(divs){
   const container=$('#divisions')
   container.innerHTML=''
-  const grid=document.createElement('div')
-  grid.className='division-grid'
-  Object.entries(divs).forEach(([name,teams])=>{
+  const mkTable=()=>{
+    const table=document.createElement('table')
+    table.className='standings'
+    const thead=document.createElement('thead')
+    thead.innerHTML=`
+      <tr>
+        <th class="team">Team</th>
+        <th>W</th>
+        <th>L</th>
+        <th>PCT</th>
+        <th>GB</th>
+        <th>HOME</th>
+        <th>AWAY</th>
+        <th>DIV</th>
+        <th>CONF</th>
+        <th>PPG</th>
+        <th>OPP PPG</th>
+        <th>DIFF</th>
+        <th>STRK</th>
+        <th>L10</th>
+      </tr>`
+    table.appendChild(thead)
+    return table
+  }
+  const makeCard=(title,teams)=>{
     const card=document.createElement('div')
     card.className='division-card'
     const h=document.createElement('h3')
-    h.textContent=name||'Division'
+    h.textContent=title
     const wrap=document.createElement('div')
     wrap.className='table-wrap'
-    const table=document.createElement('table')
-    table.className='standings'
-    table.innerHTML=document.querySelector('table.standings thead').outerHTML
+    const table=mkTable()
     const tbody=document.createElement('tbody')
-    fillTable(tbody,teams)
+    fillTable(tbody,teams,{showOrdinal:false})
     table.appendChild(tbody)
     wrap.appendChild(table)
     card.appendChild(h)
     card.appendChild(wrap)
-    grid.appendChild(card)
-  })
+    return card
+  }
+  const eastOrder=['Atlantic','Central','Southeast']
+  const westOrder=['Northwest','Pacific','Southwest']
+  const byDiv=(name,conf)=>{
+    const list=(conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[]
+    return rank(list.filter(t=>String(t.division||'').toLowerCase()===name.toLowerCase()))
+  }
+  const grid=document.createElement('div')
+  grid.className='division-grid'
+  const eastSection=document.createElement('div')
+  eastSection.className='conference-block'
+  const eastTitle=document.createElement('h2')
+  eastTitle.textContent='Eastern Conference'
+  eastSection.appendChild(eastTitle)
+  eastOrder.forEach(d=>eastSection.appendChild(makeCard(d,byDiv(d,'East'))))
+  const westSection=document.createElement('div')
+  westSection.className='conference-block'
+  const westTitle=document.createElement('h2')
+  westTitle.textContent='Western Conference'
+  westSection.appendChild(westTitle)
+  westOrder.forEach(d=>westSection.appendChild(makeCard(d,byDiv(d,'West'))))
+  grid.appendChild(eastSection)
+  grid.appendChild(westSection)
   container.appendChild(grid)
 }
 
-function fillTable(tbody,teams){
+function fillTable(tbody,teams,opts={}){
+  const showOrdinal=!!opts.showOrdinal
   tbody.innerHTML=''
   teams.forEach(t=>{
     const tr=document.createElement('tr')
@@ -248,9 +292,9 @@ function fillTable(tbody,teams){
     const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="">`:''
     const diffClass=t.diff==null?'':(t.diff>=0?'pos-good':'pos-bad')
     const gbDisplay=(t.gb===0)?'-':round(t.gb,1)
+    const ord=showOrdinal?`<span class="ordinal">No. ${t.rank}</span> `:''
     tr.innerHTML=`
-      <td class="rank">${t.rank}</td>
-      <td class="team"><div class="team-cell">${logo}<span>${t.name}</span></div></td>
+      <td class="team"><div class="team-cell">${logo}<span>${ord}${t.name}</span></div></td>
       <td>${t.wins}</td>
       <td>${t.losses}</td>
       <td>${round(t.pct,3).toFixed(3)}</td>
@@ -305,6 +349,9 @@ async function backfillRecords(data){
     applyToArray(data.conference.East)
     applyToArray(data.conference.West)
     Object.keys(data.divisions).forEach(k=>applyToArray(data.divisions[k]))
+    data.conference.East=rank(data.conference.East)
+    data.conference.West=rank(data.conference.West)
+    Object.keys(data.divisions).forEach(k=>data.divisions[k]=rank(data.divisions[k]))
     data.league=rank([...data.conference.East,...data.conference.West])
   }catch(e){/* ignore backfill errors */}
 }

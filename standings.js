@@ -27,7 +27,24 @@ $$('.type-btn').forEach(b=>b.addEventListener('click',e=>{
 async function load(){
   status('Loading…')
   const data=await fetchStandings(state.season,state.type)
-  if(!data){status('Failed to load standings');return}
+  if(!data){
+    const fb=await buildStandingsFallback()
+    if(fb && (fb.league?.length||0)>0){
+      await ensureTeamIndex()
+      render(fb)
+      status('Updating splits…')
+      backfillRecords(fb).then(()=>{render(fb);status('Updated')}).catch(()=>status('Updated'))
+      return
+    }
+    const sample=sampleData()
+    if(sample){
+      render(sample)
+      status('Showing sample data')
+      return
+    }
+    status('Failed to load standings');
+    return
+  }
   const normalized=normalize(data)
   await ensureTeamIndex()
   if((normalized.league?.length||0)===0){
@@ -732,6 +749,25 @@ async function fetchOverallForTeam(teamId,idMap){
       t.pct=(t.wins+t.losses)?(t.wins/(t.wins+t.losses)):0
     }
   }catch(e){return}
+}
+
+function sampleData(){
+  const mk=(id,name,short,conference,division)=>({
+    id:String(id),name,short,logo:`https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${short.toLowerCase()}.png`,
+    conference,division,wins:0,losses:0,pct:0,
+    home:'-',away:'-',div:'-',conf:'-',ppg:null,opppg:null,diff:null,streak:'',lastTen:'-'
+  })
+  const east=[
+    mk(2,'Boston Celtics','BOS','East','Atlantic'),
+    mk(5,'Cleveland Cavaliers','CLE','East','Central')
+  ]
+  const west=[
+    mk(25,'Oklahoma City Thunder','OKC','West','Northwest'),
+    mk(7,'Denver Nuggets','DEN','West','Northwest')
+  ]
+  const league=rank([...east,...west])
+  const divisions=groupDivisions(league)
+  return {conference:{East:rank(east),West:rank(west)},league,divisions}
 }
 
 async function getTeamMeta(id){

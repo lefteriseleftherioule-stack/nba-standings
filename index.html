@@ -16,10 +16,15 @@
         <button class="btn view-btn active" data-scope="conference">Conference</button>
         <button class="btn view-btn" data-scope="division">Division</button>
       </div>
-      <div class="segmented season-switch">
-        <button class="btn season-btn active" data-season="2025">2025-26</button>
-        <button class="btn season-btn" data-season="2024">2024-25</button>
-        <button class="btn season-btn" data-season="2023">2023-24</button>
+      <div class="season-switch">
+        <label for="season-select">Season:</label>
+        <select id="season-select" class="btn">
+          <option value="2025" selected>2025-26</option>
+          <option value="2024">2024-25</option>
+          <option value="2023">2023-24</option>
+          <option value="2022">2022-23</option>
+          <option value="2021">2021-22</option>
+        </select>
       </div>
       <div class="segmented type-switch">
         <button class="btn type-btn active" data-type="2">Regular Season</button>
@@ -36,7 +41,7 @@
           <table class="standings">
             <thead>
               <tr>
-                <th class="team">Team</th>
+                
                 <th>W</th>
                 <th>L</th>
                 <th>PCT</th>
@@ -62,21 +67,20 @@
           <table class="standings">
             <thead>
               <tr>
-                <th class="rank">#</th>
-                <th class="team">Team</th>
-                <th>W</th>
-                <th>L</th>
-                <th>PCT</th>
-                <th>GB</th>
-                <th>HOME</th>
-                <th>AWAY</th>
-                <th>DIV</th>
-                <th>CONF</th>
-                <th>PPG</th>
-                <th>OPP PPG</th>
-                <th>DIFF</th>
-                <th>STRK</th>
-                <th>L10</th>
+              
+              <th>W</th>
+              <th>L</th>
+              <th>PCT</th>
+              <th>GB</th>
+              <th>HOME</th>
+              <th>AWAY</th>
+              <th>DIV</th>
+              <th>CONF</th>
+              <th>PPG</th>
+              <th>OPP PPG</th>
+              <th>DIFF</th>
+              <th>STRK</th>
+              <th>L10</th>
               </tr>
             </thead>
             <tbody id="west-body"></tbody>
@@ -90,7 +94,7 @@
         <table class="standings">
           <thead>
             <tr>
-              <th class="team">Team</th>
+              
               <th>W</th>
               <th>L</th>
               <th>PCT</th>

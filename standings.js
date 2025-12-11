@@ -26,6 +26,8 @@ $$('.type-btn').forEach(b=>b.addEventListener('click',e=>{
 
 async function load(){
   status('Loading…')
+  const embed=document.getElementById('embed-fallback')
+  if(embed) embed.style.display='block'
   const data=await fetchStandings(state.season,state.type)
   if(!data){
     const fb=await buildStandingsFallback()
@@ -59,7 +61,7 @@ async function load(){
     }
   }
   render(normalized)
-  document.getElementById('embed-fallback').style.display='none'
+  if(embed) embed.style.display='none'
   status('Updating splits…')
   backfillRecords(normalized).then(()=>{
     render(normalized)

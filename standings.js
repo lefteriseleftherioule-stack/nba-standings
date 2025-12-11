@@ -211,12 +211,15 @@ function renderScope(){
 }
 
 function renderConference(conf){
-  fillTable($('#east-body'),conf.East,{showOrdinal:true})
-  fillTable($('#west-body'),conf.West,{showOrdinal:true})
+  fillTable($('#east-body'),conf.East,{showOrdinal:false})
+  attachSort($('#east-body'),()=>window.currentData.conference.East)
+  fillTable($('#west-body'),conf.West,{showOrdinal:false})
+  attachSort($('#west-body'),()=>window.currentData.conference.West)
 }
 
 function renderLeague(list){
   fillTable($('#league-body'),list,{showOrdinal:false})
+  attachSort($('#league-body'),()=>window.currentData.league)
 }
 
 function renderDivisions(divs){
@@ -256,6 +259,7 @@ function renderDivisions(divs){
     const table=mkTable()
     const tbody=document.createElement('tbody')
     fillTable(tbody,teams,{showOrdinal:false})
+    attachSort(tbody,()=>byDiv(title))
     table.appendChild(tbody)
     wrap.appendChild(table)
     card.appendChild(h)
@@ -297,7 +301,7 @@ function fillTable(tbody,teams,opts={}){
     const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="">`:''
     const diffClass=t.diff==null?'':(t.diff>=0?'pos-good':'pos-bad')
     const gbDisplay=(t.gb===0)?'-':round(t.gb,1)
-    const ord=showOrdinal?`<span class="ordinal">No. ${t.rank}</span> `:''
+    const ord='' // remove ordinal numbers in Team cell
     tr.innerHTML=`
       <td class="team"><div class="team-cell">${logo}<span>${ord}${t.name}</span></div></td>
       <td>${t.wins}</td>
@@ -316,6 +320,71 @@ function fillTable(tbody,teams,opts={}){
     `
     tbody.appendChild(tr)
   })
+}
+
+function attachSort(tbody,getList){
+  const table=tbody.closest('table')
+  const ths=table.querySelectorAll('thead th[data-sort]')
+  ths.forEach(th=>{
+    th.style.cursor='pointer'
+    th.addEventListener('click',()=>{
+      const key=th.dataset.sort
+      const dir=th.dataset.dir==='asc'?'desc':'asc'
+      ths.forEach(x=>{ if(x!==th) x.dataset.dir='' })
+      th.dataset.dir=dir
+      const list=[...getList()]
+      const cmp=makeComparator(key,dir)
+      list.sort(cmp)
+      fillTable(tbody,list,{showOrdinal:false})
+    })
+  })
+}
+
+function recordPct(s){
+  if(typeof s!=='string') return NaN
+  const m=s.match(/(\d+)\s*-\s*(\d+)/)
+  if(!m) return NaN
+  const w=parseInt(m[1]),l=parseInt(m[2])
+  if(!Number.isFinite(w)||!Number.isFinite(l)||w+l===0) return NaN
+  return w/(w+l)
+}
+
+function streakVal(s){
+  if(typeof s!=='string') return 0
+  const m=s.match(/([WL])(\d+)/i)
+  if(!m) return 0
+  const v=parseInt(m[2])
+  return m[1].toUpperCase()==='W'?v:-v
+}
+
+function makeComparator(key,dir){
+  const d=dir==='asc'?1:-1
+  const num=(a)=>Number.isFinite(a)?a:(typeof a==='string'?parseFloat(a):NaN)
+  return (a,b)=>{
+    let av,bv
+    switch(key){
+      case 'wins': av=a.wins; bv=b.wins; break
+      case 'losses': av=a.losses; bv=b.losses; break
+      case 'pct': av=(typeof a.pct==='number')?a.pct:(a.wins+a.losses?a.wins/(a.wins+a.losses):0); bv=(typeof b.pct==='number')?b.pct:(b.wins+b.losses?b.wins/(b.wins+b.losses):0); break
+      case 'gb': av=a.gb; bv=b.gb; break
+      case 'home': av=recordPct(a.home); bv=recordPct(b.home); break
+      case 'away': av=recordPct(a.away); bv=recordPct(b.away); break
+      case 'div': av=recordPct(a.div); bv=recordPct(b.div); break
+      case 'conf': av=recordPct(a.conf); bv=recordPct(b.conf); break
+      case 'ppg': av=a.ppg; bv=b.ppg; break
+      case 'opppg': av=b.opppg; bv=a.opppg; break // sorting opppg higher->lower when desc; keep comparator consistent by flipping
+      case 'diff': av=a.diff; bv=b.diff; break
+      case 'streak': av=streakVal(a.streak); bv=streakVal(b.streak); break
+      case 'lastTen': av=recordPct(a.lastTen); bv=recordPct(b.lastTen); break
+      default: av=a.name; bv=b.name
+    }
+    if(typeof av==='string' && typeof bv==='string') return d * av.localeCompare(bv)
+    av=num(av); bv=num(bv)
+    if(!Number.isFinite(av) && Number.isFinite(bv)) return 1
+    if(Number.isFinite(av) && !Number.isFinite(bv)) return -1
+    if(!Number.isFinite(av) && !Number.isFinite(bv)) return 0
+    return d * (av-bv)
+  }
 }
 
 async function backfillRecords(data){

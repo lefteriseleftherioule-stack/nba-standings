@@ -250,6 +250,7 @@ async function backfillRecords(data){
       }
     })
     await Promise.all(workers)
+    await backfillSchedule(data,idMap)
     const applyToArray=(arr)=>{
       arr.forEach((t,i)=>{
         const updated=idMap.get(String(t.id))
@@ -349,6 +350,56 @@ async function fetchCoreRecordAndApply(team,idMap){
     updated.lastTen=getSummary(lastTen)||updated.lastTen
     updated.streak=getSummary(streak)||updated.streak
     // keep ppg/opppg if already present
+  }catch(e){return}
+}
+
+async function backfillSchedule(data,idMap){
+  const all=data.league
+  const queue=all.map(t=>()=>fetchScheduleAndApply(t,idMap))
+  const limit=6
+  let index=0
+  const workers=Array.from({length:limit}).map(async()=>{
+    while(index<queue.length){
+      const fn=queue[index++]
+      await fn()
+    }
+  })
+  await Promise.all(workers)
+}
+
+async function fetchScheduleAndApply(team,idMap){
+  const u=`https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams/${team.id}/schedule?season=${state.season}&seasontype=${state.type}&region=us&lang=en`
+  try{
+    const r=await fetch(u,{cache:'no-store'})
+    if(!r.ok) return
+    const j=await r.json()
+    const events=j.events||j.items||[]
+    if(!events.length) return
+    let hw=0,hl=0,rw=0,rl=0
+    const results=[]
+    events.forEach(ev=>{
+      const comp=(ev.competitions&&ev.competitions[0])||ev.competition||null
+      const comps=(comp&&comp.competitors)||[]
+      const me=comps.find(c=>String(c.team?.id||c.id)===String(team.id))
+      if(!me) return
+      const done=(comp?.status?.type?.completed===true)||(comp?.status?.type?.state==='post')
+      if(!done) return
+      const win=!!me.winner
+      results.push(win)
+      if(me.homeAway==='home'){ if(win) hw++; else hl++; }
+      else { if(win) rw++; else rl++; }
+    })
+    const updated=idMap.get(String(team.id))||team
+    const last=results.slice(-10)
+    const ltw=last.filter(Boolean).length
+    const ltl=last.length-ltw
+    const streakLen=(()=>{ let s=0; for(let i=results.length-1;i>=0;i--){ if(results[i]) s++; else break } return s })()
+    const losingLen=(()=>{ let s=0; for(let i=results.length-1;i>=0;i--){ if(!results[i]) s++; else break } return s })()
+    updated.home=(Number.isFinite(hw)&&Number.isFinite(hl))?`${hw}-${hl}`:updated.home
+    updated.away=(Number.isFinite(rw)&&Number.isFinite(rl))?`${rw}-${rl}`:updated.away
+    updated.lastTen=(last.length?`${ltw}-${ltl}`:updated.lastTen)
+    if(streakLen>0) updated.streak=`W${streakLen}`
+    else if(losingLen>0) updated.streak=`L${losingLen}`
   }catch(e){return}
 }
 

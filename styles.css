@@ -13,8 +13,7 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;backg
 .table-wrap{overflow:auto;border:1px solid #1f2430;border-radius:10px}
 table.standings{width:100%;border-collapse:collapse;min-width:900px;background:var(--card);color:var(--text)}
 thead tr{background:#121620}
-th,td{padding:10px 12px;text-align:right;border-bottom:1px solid #1f2430;color:var(--text)}
-th.team,td.team{text-align:left}
+th,td{padding:10px 12px;text-align:center;border-bottom:1px solid #1f2430;color:var(--text)}
 th.rank,td.rank{width:40px}
 tbody tr:hover{background:#131926}
 .team-cell{display:flex;align-items:flex-start;gap:10px}

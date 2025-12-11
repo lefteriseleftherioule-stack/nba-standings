@@ -77,9 +77,7 @@ function parseWL(s){
 async function fetchStandings(season,type){
   const urls=[
     `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en&contentorigin=espn`,
-    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?region=us&lang=en&contentorigin=espn`,
-    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en`,
-    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?region=us&lang=en`
+    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en`
   ]
   for(const u of urls){
     try{

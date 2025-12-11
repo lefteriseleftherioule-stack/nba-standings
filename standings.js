@@ -45,15 +45,17 @@ function status(t){statusEl.textContent=t}
 async function fetchStandings(season,type){
   const urls=[
     `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en&contentorigin=espn`,
+    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?region=us&lang=en&contentorigin=espn`,
+    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en`,
     `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?region=us&lang=en`
   ]
   for(const u of urls){
     try{
-      const r=await fetch(u,{cache:'no-store'})
+      const r=await fetch(u,{cache:'no-store',mode:'cors',headers:{'accept':'application/json'}})
       if(!r.ok)continue
       const j=await r.json()
-      return j
-    }catch(e){}
+      if(j) return j
+    }catch(e){continue}
   }
   return null
 }

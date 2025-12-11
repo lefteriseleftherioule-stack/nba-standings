@@ -118,8 +118,15 @@ function mapEntry(e,divisionName){
       return norm.some(n=>nm===n||tp===n||ab===n)
     })
   }
-  const wins=(rec('overall','total','overallRecord')?.wins)!=null?parseInt(rec('overall','total','overallRecord').wins):parseInt(sv(stats,'wins','totalWins','overallWins'))||0
-  const losses=(rec('overall','total','overallRecord')?.losses)!=null?parseInt(rec('overall','total','overallRecord').losses):parseInt(sv(stats,'losses','totalLosses','overallLosses'))||0
+  const overallRec=rec('overall','total','overallRecord')
+  let wins=(overallRec?.wins)!=null?parseInt(overallRec.wins):parseInt(sv(stats,'wins','totalWins','overallWins'))
+  let losses=(overallRec?.losses)!=null?parseInt(overallRec.losses):parseInt(sv(stats,'losses','totalLosses','overallLosses'))
+  if(!Number.isFinite(wins) || !Number.isFinite(losses)){
+    const [pw,pl]=parseWL(overallRec?.summary||sv(stats,'overallRecord','record'))
+    if(Number.isFinite(pw)) wins=pw
+    if(Number.isFinite(pl)) losses=pl
+  }
+  wins=wins||0; losses=losses||0
   let pct=sv(stats,'winPercent','winPct','pct','percentage')
   pct=typeof pct==='number'?pct:(wins+losses?wins/(wins+losses):0)
   const hw=(rec('home')?.wins)!=null?parseInt(rec('home').wins):parseInt(sv(stats,'homeWins'))
@@ -130,9 +137,14 @@ function mapEntry(e,divisionName){
   const cl=(rec('conference')?.losses)!=null?parseInt(rec('conference').losses):parseInt(sv(stats,'conferenceLosses'))
   const dw=(rec('division')?.wins)!=null?parseInt(rec('division').wins):parseInt(sv(stats,'divisionWins'))
   const dl=(rec('division')?.losses)!=null?parseInt(rec('division').losses):parseInt(sv(stats,'divisionLosses'))
-  const lts=rec('lastTen')?.summary
-  const ltw=(rec('lastTen','last10','L10','lastTenRecord')?.wins)!=null?parseInt(rec('lastTen','last10','L10','lastTenRecord').wins):parseInt(sv(stats,'lastTenWins','last10wins'))
-  const ltl=(rec('lastTen','last10','L10','lastTenRecord')?.losses)!=null?parseInt(rec('lastTen','last10','L10','lastTenRecord').losses):parseInt(sv(stats,'lastTenLosses','last10losses'))
+  const lts=rec('lastTen','last10','L10','lastTenRecord')?.summary
+  let ltw=(rec('lastTen','last10','L10','lastTenRecord')?.wins)!=null?parseInt(rec('lastTen','last10','L10','lastTenRecord').wins):parseInt(sv(stats,'lastTenWins','last10wins'))
+  let ltl=(rec('lastTen','last10','L10','lastTenRecord')?.losses)!=null?parseInt(rec('lastTen','last10','L10','lastTenRecord').losses):parseInt(sv(stats,'lastTenLosses','last10losses'))
+  if(!Number.isFinite(ltw) || !Number.isFinite(ltl)){
+    const [pw,pl]=parseWL((lastTenStat?.summary||lastTenStat?.displayValue||lts))
+    if(Number.isFinite(pw)) ltw=pw
+    if(Number.isFinite(pl)) ltl=pl
+  }
   const streakStat=find(stats,'streak')
   const streak=(typeof streakStat?.displayValue==='string'&&streakStat.displayValue)||rec('streak')?.summary||undefined
   const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
@@ -289,7 +301,7 @@ function renderDivisions(divs){
   const westTitle=document.createElement('h2')
   westTitle.textContent='Western Conference'
   westSection.appendChild(westTitle)
-  westOrder.forEach(d=>westSection.appendChild(makeCard(d,'West')))
+  westOrder.forEach(d=>westSection.appendChild(makeCard(d,byDiv(d,'West'))))
   grid.appendChild(eastSection)
   grid.appendChild(westSection)
   container.appendChild(grid)
@@ -298,7 +310,8 @@ function renderDivisions(divs){
 function fillTable(tbody,teams,opts={}){
   const showOrdinal=!!opts.showOrdinal
   tbody.innerHTML=''
-  teams.forEach(t=>{
+  const list=Array.isArray(teams)?teams:[]
+  list.forEach(t=>{
     const tr=document.createElement('tr')
     const fallbackLogo=t.short?`https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${t.short.toLowerCase()}.png`:''
     const logoSrc=t.logo||fallbackLogo
@@ -640,3 +653,9 @@ async function getTeamMeta(id){
 }
 
 load()
+  const parseWL=(s)=>{
+    if(typeof s!=='string') return [NaN,NaN]
+    const m=s.match(/(\d+)\s*-\s*(\d+)/)
+    if(!m) return [NaN,NaN]
+    return [parseInt(m[1]),parseInt(m[2])]
+  }

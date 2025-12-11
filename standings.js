@@ -31,45 +31,38 @@ async function load(){
   if(!data){
     const fb=await buildStandingsFallback()
     if(fb && (fb.league?.length||0)>0){
-      await ensureTeamIndex()
-      status('Updating splits…')
-      try{ await backfillRecords(fb) }catch(e){}
       render(fb)
+      status('Updating splits…')
+      backfillRecords(fb).then(()=>{ render(fb); status('Updated') }).catch(()=>status('Updated'))
       if(embed) embed.style.display='none'
-      status('Updated')
       return
     }
     const sample=sampleData()
     if(sample){
-      await ensureTeamIndex()
-      status('Updating splits…')
-      try{ await backfillRecords(sample) }catch(e){}
       render(sample)
+      status('Updating splits…')
+      backfillRecords(sample).then(()=>{ render(sample); status('Showing sample data') }).catch(()=>status('Showing sample data'))
       if(embed) embed.style.display='none'
-      status('Showing sample data')
       return
     }
     status('Failed to load standings');
     return
   }
   const normalized=normalize(data)
-  await ensureTeamIndex()
   if((normalized.league?.length||0)===0){
     const fb=await buildStandingsFallback()
     if(fb && (fb.league?.length||0)>0){
-      status('Updating splits…')
-      try{ await backfillRecords(fb) }catch(e){}
       render(fb)
+      status('Updating splits…')
+      backfillRecords(fb).then(()=>{ render(fb); status('Updated') }).catch(()=>status('Updated'))
       if(embed) embed.style.display='none'
-      status('Updated')
       return
     }
   }
-  status('Updating splits…')
-  try{ await backfillRecords(normalized) }catch(e){}
   render(normalized)
+  status('Updating splits…')
+  backfillRecords(normalized).then(()=>{ render(normalized); status('Updated') }).catch(()=>status('Updated'))
   if(embed) embed.style.display='none'
-  status('Updated')
 }
 
 function status(t){statusEl.textContent=t}
@@ -724,9 +717,7 @@ async function buildStandingsFallback(){
 
 async function fetchOverallForTeam(teamId,idMap){
   const endpoints=[
-    `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${teamId}/record?lang=en&region=us`,
-    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams/${teamId}?region=us&lang=en`,
-    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/${teamId}`
+    `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${teamId}/record?lang=en&region=us`
   ]
   const parseWL=(s)=>{ if(typeof s!=='string') return [NaN,NaN]; const m=s.match(/(\d+)\s*-\s*(\d+)/); return m?[parseInt(m[1]),parseInt(m[2])]:[NaN,NaN] }
   try{
@@ -741,14 +732,6 @@ async function fetchOverallForTeam(teamId,idMap){
           const ds=await Promise.all(j.items.slice(0,12).map(async it=>{
             try{const rr=await fetch(`${it.href}?lang=en&region=us`,{cache:'no-store'}); if(!rr.ok) return null; return await rr.json()}catch(e){return null}
           }))
-          const overall=ds.find(d=>d&&( /overall/i.test(d.type||'') || /overall/i.test(d.name||'') ))
-          if(overall){ wins=overall.wins; losses=overall.losses; if(!Number.isFinite(wins)||!Number.isFinite(losses)){ const [w,l]=parseWL(overall.summary||overall.displayValue); wins=w; losses=l }
-          }
-        }
-        // site web/api: record.items present
-        const items=j.record?.items||j.team?.record?.items||[]
-        if(items.length && (!Number.isFinite(wins) || !Number.isFinite(losses))){
-          const ds=await Promise.all(items.slice(0,12).map(async it=>{ try{const rr=await fetch(it.href?.includes('http')?it.href:`${it.href}?lang=en&region=us`,{cache:'no-store'}); if(!rr.ok) return null; return await rr.json()}catch(e){return null} }))
           const overall=ds.find(d=>d&&( /overall/i.test(d.type||'') || /overall/i.test(d.name||'') ))
           if(overall){ wins=overall.wins; losses=overall.losses; if(!Number.isFinite(wins)||!Number.isFinite(losses)){ const [w,l]=parseWL(overall.summary||overall.displayValue); wins=w; losses=l }
           }

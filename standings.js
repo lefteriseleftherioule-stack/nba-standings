@@ -117,9 +117,9 @@ function mapEntry(e,divisionName){
       return norm.some(n=>nm===n||tp===n||ab===n)
     })
   }
-  const wins=(rec('overall')?.wins)!=null?parseInt(rec('overall').wins):parseInt(sv(stats,'wins'))||0
-  const losses=(rec('overall')?.losses)!=null?parseInt(rec('overall').losses):parseInt(sv(stats,'losses'))||0
-  let pct=sv(stats,'winPercent','percentage')
+  const wins=(rec('overall','total','overallRecord')?.wins)!=null?parseInt(rec('overall','total','overallRecord').wins):parseInt(sv(stats,'wins','totalWins','overallWins'))||0
+  const losses=(rec('overall','total','overallRecord')?.losses)!=null?parseInt(rec('overall','total','overallRecord').losses):parseInt(sv(stats,'losses','totalLosses','overallLosses'))||0
+  let pct=sv(stats,'winPercent','winPct','pct','percentage')
   pct=typeof pct==='number'?pct:(wins+losses?wins/(wins+losses):0)
   const hw=(rec('home')?.wins)!=null?parseInt(rec('home').wins):parseInt(sv(stats,'homeWins'))
   const hl=(rec('home')?.losses)!=null?parseInt(rec('home').losses):parseInt(sv(stats,'homeLosses'))
@@ -130,8 +130,8 @@ function mapEntry(e,divisionName){
   const dw=(rec('division')?.wins)!=null?parseInt(rec('division').wins):parseInt(sv(stats,'divisionWins'))
   const dl=(rec('division')?.losses)!=null?parseInt(rec('division').losses):parseInt(sv(stats,'divisionLosses'))
   const lts=rec('lastTen')?.summary
-  const ltw=(rec('lastTen')?.wins)!=null?parseInt(rec('lastTen').wins):parseInt(sv(stats,'lastTenWins')||sv(stats,'last10wins'))
-  const ltl=(rec('lastTen')?.losses)!=null?parseInt(rec('lastTen').losses):parseInt(sv(stats,'lastTenLosses')||sv(stats,'last10losses'))
+  const ltw=(rec('lastTen','last10','L10','lastTenRecord')?.wins)!=null?parseInt(rec('lastTen','last10','L10','lastTenRecord').wins):parseInt(sv(stats,'lastTenWins','last10wins'))
+  const ltl=(rec('lastTen','last10','L10','lastTenRecord')?.losses)!=null?parseInt(rec('lastTen','last10','L10','lastTenRecord').losses):parseInt(sv(stats,'lastTenLosses','last10losses'))
   const streakStat=find(stats,'streak')
   const streak=(typeof streakStat?.displayValue==='string'&&streakStat.displayValue)||rec('streak')?.summary||undefined
   const ppg=parseFloat(sv(stats,'pointsPerGame','avgPointsFor','pointsFor','ppg'))
@@ -259,7 +259,7 @@ function renderDivisions(divs){
     const table=mkTable()
     const tbody=document.createElement('tbody')
     fillTable(tbody,teams,{showOrdinal:false})
-    attachSort(tbody,()=>byDiv(title))
+    attachSort(tbody,()=>teams.slice())
     table.appendChild(tbody)
     wrap.appendChild(table)
     card.appendChild(h)
@@ -268,9 +268,14 @@ function renderDivisions(divs){
   }
   const eastOrder=['Atlantic','Central','Southeast']
   const westOrder=['Northwest','Pacific','Southwest']
-  const byDiv=(name)=>{
-    const list=(window.currentData?.divisions?.[name])||[]
-    return rank(list)
+  const divName=(t)=>{
+    const id=String(t.id)
+    const meta=teamIndex.get(id)
+    return (meta?.division)||t.division||''
+  }
+  const byDiv=(name,list)=>{
+    const filtered=(list||[]).filter(t=>String(divName(t)).toLowerCase()===String(name).toLowerCase())
+    return rank(filtered)
   }
   const grid=document.createElement('div')
   grid.className='division-grid'
@@ -279,13 +284,13 @@ function renderDivisions(divs){
   const eastTitle=document.createElement('h2')
   eastTitle.textContent='Eastern Conference'
   eastSection.appendChild(eastTitle)
-  eastOrder.forEach(d=>eastSection.appendChild(makeCard(d,byDiv(d,'East'))))
+  eastOrder.forEach(d=>eastSection.appendChild(makeCard(d,byDiv(d,window.currentData?.conference?.East))))
   const westSection=document.createElement('div')
   westSection.className='conference-block'
   const westTitle=document.createElement('h2')
   westTitle.textContent='Western Conference'
   westSection.appendChild(westTitle)
-  westOrder.forEach(d=>westSection.appendChild(makeCard(d,byDiv(d,'West'))))
+  westOrder.forEach(d=>westSection.appendChild(makeCard(d,byDiv(d,window.currentData?.conference?.West))))
   grid.appendChild(eastSection)
   grid.appendChild(westSection)
   container.appendChild(grid)

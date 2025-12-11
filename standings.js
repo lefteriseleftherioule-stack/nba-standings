@@ -118,8 +118,9 @@ function normalize(raw){
 
 function mapEntry(e,divisionName){
   const team=e.team||e
-  const stats=e.stats||e.statsItems||e.record||[]
-  const records=e.records||[]
+  const statsRaw=e.stats||e.statsItems||e.statistics||null
+  const stats=Array.isArray(statsRaw)?statsRaw:[]
+  const records=Array.isArray(e.records)?e.records:(Array.isArray(e.record?.items)?e.record.items:[])
   const find=(arr,...names)=>{
     if(!Array.isArray(arr)) return undefined
     const norm=names.map(n=>String(n).toLowerCase())
@@ -161,7 +162,7 @@ function mapEntry(e,divisionName){
   }
   wins=wins||0; losses=losses||0
   let pct=sv(stats,'winPercent','winPct','pct','percentage')
-  pct=typeof pct==='number'?pct:(wins+losses?wins/(wins+losses):0)
+  pct=typeof pct==='number'?pct:(typeof pct==='string'?parseFloat(pct):(wins+losses?wins/(wins+losses):0))
   const hw=(rec('home')?.wins)!=null?parseInt(rec('home').wins):parseInt(sv(stats,'homeWins'))
   const hl=(rec('home')?.losses)!=null?parseInt(rec('home').losses):parseInt(sv(stats,'homeLosses'))
   const rw=(rec('road')?.wins)!=null?parseInt(rec('road').wins):parseInt(sv(stats,'roadWins')||sv(stats,'awayWins'))

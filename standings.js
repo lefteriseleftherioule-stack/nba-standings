@@ -465,6 +465,9 @@ async function backfillRecords(data){
         const updated=idMap.get(String(t.id))
         if(updated){
           arr[i]={...t,
+            wins: Number.isFinite(updated.wins)?updated.wins:t.wins,
+            losses: Number.isFinite(updated.losses)?updated.losses:t.losses,
+            pct: Number.isFinite(updated.pct)?updated.pct:t.pct,
             home:updated.home||t.home,
             away:updated.away||t.away,
             div:updated.div||t.div,
@@ -637,6 +640,8 @@ async function fetchScheduleAndApply(team,idMap,confById,divById){
     const ltl=last.length-ltw
     const streakLen=(()=>{ let s=0; for(let i=results.length-1;i>=0;i--){ if(results[i]) s++; else break } return s })()
     const losingLen=(()=>{ let s=0; for(let i=results.length-1;i>=0;i--){ if(!results[i]) s++; else break } return s })()
+    const totalWins=results.filter(Boolean).length
+    const totalLosses=results.length-totalWins
     updated.home=(Number.isFinite(hw)&&Number.isFinite(hl))?`${hw}-${hl}`:updated.home
     updated.away=(Number.isFinite(rw)&&Number.isFinite(rl))?`${rw}-${rl}`:updated.away
     updated.lastTen=(last.length?`${ltw}-${ltl}`:updated.lastTen)
@@ -644,6 +649,11 @@ async function fetchScheduleAndApply(team,idMap,confById,divById){
     updated.div=(Number.isFinite(dw)&&Number.isFinite(dl))?`${dw}-${dl}`:updated.div
     if(streakLen>0) updated.streak=`W${streakLen}`
     else if(losingLen>0) updated.streak=`L${losingLen}`
+    if(Number.isFinite(totalWins) && Number.isFinite(totalLosses)){
+      updated.wins=totalWins
+      updated.losses=totalLosses
+      updated.pct=(totalWins+totalLosses)?(totalWins/(totalWins+totalLosses)):updated.pct
+    }
     if(games>0){
       const p=round(sumFor/games,1)
       const o=round(sumAgainst/games,1)

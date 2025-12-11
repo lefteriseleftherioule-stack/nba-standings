@@ -27,22 +27,26 @@ $$('.type-btn').forEach(b=>b.addEventListener('click',e=>{
 async function load(){
   status('Loading…')
   const embed=document.getElementById('embed-fallback')
-  if(embed) embed.style.display='block'
   const data=await fetchStandings(state.season,state.type)
   if(!data){
     const fb=await buildStandingsFallback()
     if(fb && (fb.league?.length||0)>0){
       await ensureTeamIndex()
-      render(fb)
       status('Updating splits…')
-      backfillRecords(fb).then(()=>{render(fb);status('Updated')}).catch(()=>status('Updated'))
+      try{ await backfillRecords(fb) }catch(e){}
+      render(fb)
+      if(embed) embed.style.display='none'
+      status('Updated')
       return
     }
     const sample=sampleData()
     if(sample){
+      await ensureTeamIndex()
+      status('Updating splits…')
+      try{ await backfillRecords(sample) }catch(e){}
       render(sample)
+      if(embed) embed.style.display='none'
       status('Showing sample data')
-      document.getElementById('embed-fallback').style.display='block'
       return
     }
     status('Failed to load standings');
@@ -53,22 +57,19 @@ async function load(){
   if((normalized.league?.length||0)===0){
     const fb=await buildStandingsFallback()
     if(fb && (fb.league?.length||0)>0){
-      render(fb)
       status('Updating splits…')
-      backfillRecords(fb).then(()=>{render(fb);status('Updated')}).catch(()=>status('Updated'))
-      document.getElementById('embed-fallback').style.display='none'
+      try{ await backfillRecords(fb) }catch(e){}
+      render(fb)
+      if(embed) embed.style.display='none'
+      status('Updated')
       return
     }
   }
+  status('Updating splits…')
+  try{ await backfillRecords(normalized) }catch(e){}
   render(normalized)
   if(embed) embed.style.display='none'
-  status('Updating splits…')
-  backfillRecords(normalized).then(()=>{
-    render(normalized)
-    status('Updated')
-  }).catch(()=>{
-    status('Updated')
-  })
+  status('Updated')
 }
 
 function status(t){statusEl.textContent=t}

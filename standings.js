@@ -103,10 +103,15 @@ async function fetchDivisionStandings(season,type){
       if(!r.ok) continue
       const raw=await r.json()
       if(!raw) continue
+      console.log('fetchDivisionStandings: got raw children/groups',{
+        hasChildren:!!raw.children,
+        groupCount:(raw.standings?.groups||raw.children||[]).length
+      })
       const out={}
       const children=raw.children||raw.standings?.groups||[]
       for(const conf of (children||[])){
         const divs=(conf.children||[])
+        console.log('fetchDivisionStandings: conf children count',divs.length)
         for(const d of divs){
           const name=d.name||d.abbreviation||''
           const entries=(d.standings?.entries||d.entries||[])
@@ -116,6 +121,7 @@ async function fetchDivisionStandings(season,type){
           }
         }
       }
+      console.log('fetchDivisionStandings: out keys',Object.keys(out))
       if(Object.keys(out).length) return out
     }catch(e){continue}
   }
@@ -291,11 +297,13 @@ function render(data){
 function renderScope(){
   $$('.view').forEach(v=>v.classList.remove('active'))
   if(state.scope==='division' && window.DivPre){
+    console.log('renderScope: switching to division',{season:state.season,type:state.type})
     $('#division-view').classList.add('active')
     window.DivPre.renderDivision(state.season,state.type)
     return
   }
   if(state.type==='1' && window.DivPre){
+    console.log('renderScope: preseason league route',{season:state.season})
     $('#league-view').classList.add('active')
     window.DivPre.renderPreseasonLeague(state.season)
     return

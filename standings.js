@@ -301,18 +301,18 @@ function renderDivisions(divs){
     thead.innerHTML=`
       <tr>
         <th></th>
-        <th>W</th>
-        <th>L</th>
-        <th>PCT</th>
-        <th>GB</th>
+        <th data-sort="wins">W</th>
+        <th data-sort="losses">L</th>
+        <th data-sort="pct">PCT</th>
+        <th data-sort="gb">GB</th>
         <th>HOME</th>
         <th>AWAY</th>
         <th>DIV</th>
         <th>CONF</th>
-        <th>PPG</th>
-        <th>OPP PPG</th>
-        <th>DIFF</th>
-        <th>STRK</th>
+        <th data-sort="ppg">PPG</th>
+        <th data-sort="opppg">OPP PPG</th>
+        <th data-sort="diff">DIFF</th>
+        <th data-sort="streak">STRK</th>
         <th>L10</th>
       </tr>`
     table.appendChild(thead)

@@ -285,12 +285,12 @@ function renderDivisions(divs){
     East:{
       Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],
       Central:['DET','CLE','MIL','CHI','IND'],
-      Southeast:['ORL','MIA','ATL','CHA','WAS']
+      Southeast:['ORL','MIA','ATL','CHA','WSH','WAS']
     },
     West:{
       Northwest:['OKC','DEN','MIN','POR','UTA','UTAH'],
       Pacific:['LAL','PHX','GS','GSW','SAC','LAC'],
-      Southwest:['SAS','HOU','MEM','DAL','NO','NOP','NOLA']
+      Southwest:['SAS','SA','HOU','MEM','DAL','NO','NOP','NOLA']
     }
   }
   const inSet=(abbr,set)=>{ const a=String(abbr||'').toUpperCase(); return set.some(x=>a===x) }
@@ -402,7 +402,8 @@ function attachSort(tbody,getList){
     th.style.cursor='pointer'
     th.addEventListener('click',()=>{
       const key=th.dataset.sort
-      const dir=th.dataset.dir==='asc'?'desc':'asc'
+      const prev=th.dataset.dir||''
+      const dir=prev===''?'desc':(prev==='asc'?'desc':'asc')
       ths.forEach(x=>{ if(x!==th) x.dataset.dir='' })
       th.dataset.dir=dir
       const list=[...getList()]

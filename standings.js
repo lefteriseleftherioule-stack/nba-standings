@@ -67,10 +67,17 @@ function parseWL(s){
   return [parseInt(m[1]),parseInt(m[2])]
 }
 
+function apiSeasonFor(season,type){
+  const n=parseInt(season,10)
+  if(!Number.isFinite(n)) return season
+  return String(type==='2' ? (n+1) : n)
+}
+
 async function fetchStandings(season,type){
+  const apiSeason=apiSeasonFor(season,type)
   const urls=[
-    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en&contentorigin=espn`,
-    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?season=${season}&seasontype=${type}&region=us&lang=en`
+    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${apiSeason}&seasontype=${type}&region=us&lang=en&contentorigin=espn`,
+    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?season=${apiSeason}&seasontype=${type}&region=us&lang=en`
   ]
   for(const u of urls){
     try{
@@ -481,7 +488,7 @@ async function backfillRecords(data){
 }
 
 async function fetchCoreRecordAndApply(team,idMap){
-  const base=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${team.id}/record?lang=en&region=us`
+  const base=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${apiSeasonFor(state.season,state.type)}/types/${state.type}/teams/${team.id}/record?lang=en&region=us`
   try{
     let details=[]
     let r=await fetch(base,{cache:'no-store'})
@@ -494,7 +501,7 @@ async function fetchCoreRecordAndApply(team,idMap){
       details=details.filter(Boolean)
     }
     if(!details.length){
-      const alt=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/teams/${team.id}/record?season=${state.season}&type=${state.type}&lang=en&region=us`
+      const alt=`https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/teams/${team.id}/record?season=${apiSeasonFor(state.season,state.type)}&type=${state.type}&lang=en&region=us`
       r=await fetch(alt,{cache:'no-store'})
       if(r.ok){
         const j=await r.json()
@@ -581,7 +588,7 @@ async function backfillSchedule(data,idMap){
 }
 
 async function fetchScheduleAndApply(team,idMap,confById,divById){
-  const u=`https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams/${team.id}/schedule?season=${state.season}&seasontype=${state.type}&region=us&lang=en`
+  const u=`https://site.web.api.espn.com/apis/v2/sports/basketball/nba/teams/${team.id}/schedule?season=${apiSeasonFor(state.season,state.type)}&seasontype=${state.type}&region=us&lang=en`
   try{
     const r=await fetch(u,{cache:'no-store'})
     if(!r.ok) return
@@ -735,7 +742,7 @@ async function buildStandingsFallback(){
 
 async function fetchOverallForTeam(teamId,idMap){
   const endpoints=[
-    `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${state.season}/types/${state.type}/teams/${teamId}/record?lang=en&region=us`
+    `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/${apiSeasonFor(state.season,state.type)}/types/${state.type}/teams/${teamId}/record?lang=en&region=us`
   ]
   const parseWL=(s)=>{ if(typeof s!=='string') return [NaN,NaN]; const m=s.match(/(\d+)\s*-\s*(\d+)/); return m?[parseInt(m[1]),parseInt(m[2])]:[NaN,NaN] }
   try{

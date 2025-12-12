@@ -297,19 +297,6 @@ function renderDivisions(divs){
     const n=String(s||'').toLowerCase().trim()
     return n.replace(/\s*division$/,'')
   }
-  const DIV_MAP={
-    East:{
-      Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],
-      Central:['DET','CLE','MIL','CHI','IND'],
-      Southeast:['ORL','MIA','ATL','CHA','WSH','WAS']
-    },
-    West:{
-      Northwest:['OKC','DEN','MIN','POR','UTA','UTAH'],
-      Pacific:['LAL','PHX','GS','GSW','SAC','LAC'],
-      Southwest:['SAS','SA','HOU','MEM','DAL','NO','NOP','NOLA']
-    }
-  }
-  const inSet=(abbr,set)=>{ const a=String(abbr||'').toUpperCase(); return set.some(x=>a===x) }
   const mkTable=()=>{
     const table=document.createElement('table')
     table.className='standings'
@@ -353,10 +340,23 @@ function renderDivisions(divs){
   }
   const eastOrder=['Atlantic','Central','Southeast']
   const westOrder=['Northwest','Pacific','Southwest']
+  const getConfArray=(conf)=>{
+    const confArr=(conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[]
+    if(confArr.length) return confArr
+    const league=window.currentData?.league||[]
+    return league.filter(t=>t.conference===conf)
+  }
   const byDiv=(name,conf)=>{
-    const base=(conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[]
-    const set=(DIV_MAP[conf]&&DIV_MAP[conf][name])||[]
-    const out=base.filter(t=> inSet(t.short,set))
+    const base=getConfArray(conf)
+    let out=base.filter(t=> normDiv(t.division)===normDiv(name))
+    if(!out.length){
+      const DIV_MAP={
+        East:{Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],Central:['DET','CLE','MIL','CHI','IND'],Southeast:['ORL','MIA','ATL','CHA','WSH','WAS']},
+        West:{Northwest:['OKC','DEN','MIN','POR','UTA','UTAH'],Pacific:['LAL','PHX','GS','GSW','SAC','LAC'],Southwest:['SAS','SA','HOU','MEM','DAL','NO','NOP','NOLA']}
+      }
+      const set=(DIV_MAP[conf]&&DIV_MAP[conf][name])||[]
+      out=base.filter(t=> set.includes(String(t.short||'').toUpperCase()))
+    }
     return rank(out)
   }
   const grid=document.createElement('div')

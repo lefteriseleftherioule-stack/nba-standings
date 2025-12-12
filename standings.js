@@ -346,24 +346,17 @@ function renderDivisions(divs){
     return league.filter(t=>t.conference===conf)
   }
   const byDiv=(name,conf)=>{
-    const fromDivs=()=>{
-      const keys=Object.keys(divs||{})
-      const key=keys.find(k=>normDiv(k)===normDiv(name))
-      const arr=(key?divs[key]:[])||[]
-      return rank(arr)
-    }
-    let out=fromDivs()
-    if(out.length) return out
     const base=getConfArray(conf)
-    out=base.filter(t=> normDiv(t.division)===normDiv(name))
-    if(!out.length){
-      const DIV_MAP={
-        East:{Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],Central:['DET','CLE','MIL','CHI','IND'],Southeast:['ORL','MIA','ATL','CHA','WSH','WAS']},
-        West:{Northwest:['OKC','DEN','MIN','POR','UTA','UTAH'],Pacific:['LAL','PHX','GS','GSW','SAC','LAC'],Southwest:['SAS','SA','HOU','MEM','DAL','NO','NOP','NOLA']}
-      }
-      const set=(DIV_MAP[conf]&&DIV_MAP[conf][name])||[]
-      out=base.filter(t=> set.includes(String(t.short||'').toUpperCase()))
+    const DIV_MAP={
+      East:{Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],Central:['DET','CLE','MIL','CHI','IND'],Southeast:['ORL','MIA','ATL','CHA','WSH','WAS']},
+      West:{Northwest:['OKC','DEN','MIN','POR','UTA','UTAH'],Pacific:['LAL','PHX','GS','GSW','SAC','LAC'],Southwest:['SAS','SA','HOU','MEM','DAL','NO','NOP','NOLA']}
     }
+    const set=(DIV_MAP[conf]&&DIV_MAP[conf][name])||[]
+    const target=normDiv(name)
+    const out=base.filter(t=>{
+      const abbr=String(t.short||'').toUpperCase()
+      return normDiv(t.division)===target || set.includes(abbr)
+    })
     return rank(out)
   }
   const grid=document.createElement('div')

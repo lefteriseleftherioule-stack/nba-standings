@@ -446,8 +446,11 @@ function makeComparator(key,dir){
       case 'div': av=recordPct(a.div); bv=recordPct(b.div); break
       case 'conf': av=recordPct(a.conf); bv=recordPct(b.conf); break
       case 'ppg': av=a.ppg; bv=b.ppg; break
-      case 'opppg': av=b.opppg; bv=a.opppg; break // sorting opppg higher->lower when desc; keep comparator consistent by flipping
-      case 'diff': av=a.diff; bv=b.diff; break
+      case 'opppg': av=a.opppg; bv=b.opppg; break
+      case 'diff':
+        av=(a.ppg!=null && a.opppg!=null)?round(a.ppg - a.opppg,1):a.diff;
+        bv=(b.ppg!=null && b.opppg!=null)?round(b.ppg - b.opppg,1):b.diff;
+        break
       case 'streak': av=streakVal(a.streak); bv=streakVal(b.streak); break
       case 'lastTen': av=recordPct(a.lastTen); bv=recordPct(b.lastTen); break
       default: av=a.name; bv=b.name

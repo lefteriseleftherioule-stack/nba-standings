@@ -290,6 +290,16 @@ function render(data){
 
 function renderScope(){
   $$('.view').forEach(v=>v.classList.remove('active'))
+  if(state.scope==='division' && window.DivPre){
+    $('#division-view').classList.add('active')
+    window.DivPre.renderDivision(state.season,state.type)
+    return
+  }
+  if(state.type==='1' && window.DivPre){
+    $('#league-view').classList.add('active')
+    window.DivPre.renderPreseasonLeague(state.season)
+    return
+  }
   if(state.scope==='conference')$('#conference-view').classList.add('active')
   if(state.scope==='league')$('#league-view').classList.add('active')
   if(state.scope==='division')$('#division-view').classList.add('active')

@@ -334,7 +334,7 @@ function renderDivisions(divs){
         renderDivisions(fetched)
       }
     }).catch(()=>{})
-    return
+    // continue with league-based fallback
   }
   const mkTable=()=>{
     const table=document.createElement('table')

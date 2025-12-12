@@ -1,33 +1,42 @@
 window.DivPre=(function(){
   async function renderDivision(season,type){
     console.log('DivPre: renderDivision start',{season,type})
+    window.debugLog && window.debugLog('DivPre renderDivision start',{season,type})
     const container=document.querySelector('#divisions')
     console.log('DivPre: container found',!!container)
+    window.debugLog && window.debugLog('DivPre container found',!!container)
     if(!container) return
     container.innerHTML=''
     const divs=await fetchDivisionStandings(season,type)
     console.log('DivPre: fetched division groups',divs?Object.keys(divs).length:0)
+    window.debugLog && window.debugLog('DivPre fetched division groups',divs?Object.keys(divs).length:0)
     if(divs && Object.keys(divs).length){
       renderDivisions(divs)
       console.log('DivPre: rendered fetched division groups')
+      window.debugLog && window.debugLog('DivPre rendered fetched division groups')
       return
     }
     const dataResp=await fetchStandings(season,type)
     console.log('DivPre: standings resp present',!!dataResp)
+    window.debugLog && window.debugLog('DivPre standings resp present',!!dataResp)
     const normalized=dataResp?normalize(dataResp):null
     console.log('DivPre: normalized divisions keys',normalized?Object.keys(normalized.divisions||{}):[])
+    window.debugLog && window.debugLog('DivPre normalized divisions keys',normalized?Object.keys(normalized.divisions||{}):[])
     if(normalized && Object.keys(normalized.divisions||{}).length){
       window.currentData=normalized
       renderDivisions(normalized.divisions)
       console.log('DivPre: rendered normalized divisions')
+      window.debugLog && window.debugLog('DivPre rendered normalized divisions')
       return
     }
     let base=(window.currentData?.league)||[]
     console.log('DivPre: base from currentData size',base.length)
+    window.debugLog && window.debugLog('DivPre base from currentData size',base.length)
     if(!base.length){
       const fb=await buildStandingsFallback()
       if(fb) base=fb.league||[]
       console.log('DivPre: fallback base size',base.length)
+      window.debugLog && window.debugLog('DivPre fallback base size',base.length)
     }
     if(!base.length) return
     const mkTable=()=>{
@@ -98,6 +107,10 @@ window.DivPre=(function(){
         Atlantic:out.Atlantic.length,Central:out.Central.length,Southeast:out.Southeast.length,
         Northwest:out.Northwest.length,Pacific:out.Pacific.length,Southwest:out.Southwest.length
       })
+      window.debugLog && window.debugLog('DivPre computedDivs sizes',{
+        Atlantic:out.Atlantic.length,Central:out.Central.length,Southeast:out.Southeast.length,
+        Northwest:out.Northwest.length,Pacific:out.Pacific.length,Southwest:out.Southwest.length
+      })
       return out
     })()
     const eastSection=document.createElement('div')
@@ -116,14 +129,17 @@ window.DivPre=(function(){
     grid.appendChild(westSection)
     container.appendChild(grid)
     console.log('DivPre: division grid rendered')
+    window.debugLog && window.debugLog('DivPre division grid rendered')
   }
   async function renderPreseasonLeague(season){
     console.log('DivPre: renderPreseasonLeague start',{season})
+    window.debugLog && window.debugLog('DivPre renderPreseasonLeague start',{season})
     const raw=await fetchStandings(season,'1')
     let data=null
     if(raw){
       data=normalize(raw)
       console.log('DivPre: preseason normalize league size',data.league?.length||0)
+      window.debugLog && window.debugLog('DivPre preseason normalize league size',data.league?.length||0)
     }
     if(!data || !(data.league||[]).length){
       const fb=await buildStandingsFallback()
@@ -133,6 +149,7 @@ window.DivPre=(function(){
         attachSort(document.querySelector('#league-body'),()=>window.currentData.league)
         backfillRecords(fb).then(()=>{ renderLeague(window.currentData.league) }).catch(()=>{})
         console.log('DivPre: preseason rendered from fallback league size',fb.league?.length||0)
+        window.debugLog && window.debugLog('DivPre preseason rendered from fallback league size',fb.league?.length||0)
         return
       }
     }
@@ -140,6 +157,7 @@ window.DivPre=(function(){
     renderLeague(data.league)
     attachSort(document.querySelector('#league-body'),()=>window.currentData.league)
     console.log('DivPre: preseason rendered league size',data.league?.length||0)
+    window.debugLog && window.debugLog('DivPre preseason rendered league size',data.league?.length||0)
   }
   return {renderDivision,renderPreseasonLeague}
 })()

@@ -48,18 +48,15 @@ async function load(){
     status('Failed to load standings');
     return
   }
-  const normalized=normalize(data)
-  await ensureTeamIndex()
-  if((normalized.league?.length||0)===0){
-    const fb=await buildStandingsFallback()
-    if(fb && (fb.league?.length||0)>0){
-      render(fb)
-      status('Updating splits…')
-      backfillRecords(fb).then(()=>{ render(fb); status('Updated') }).catch(()=>status('Updated'))
-      if(embed) embed.style.display='none'
-      return
-    }
+  const fb=await buildStandingsFallback()
+  if(fb && (fb.league?.length||0)>0){
+    render(fb)
+    status('Updating splits…')
+    backfillRecords(fb).then(()=>{ render(fb); status('Updated') }).catch(()=>status('Updated'))
+    if(embed) embed.style.display='none'
+    return
   }
+  const normalized=normalize(data)
   render(normalized)
   status('Updating splits…')
   backfillRecords(normalized).then(()=>{ render(normalized); status('Updated') }).catch(()=>status('Updated'))

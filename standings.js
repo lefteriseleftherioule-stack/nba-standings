@@ -60,6 +60,16 @@ async function load(){
 }
 
 function status(t){statusEl.textContent=t}
+window.debugLog=function(){
+  try{
+    console.log.apply(console,arguments)
+    const target=document.getElementById('debug')||document.getElementById('status')
+    if(!target) return
+    const line=document.createElement('div')
+    line.textContent=Array.from(arguments).map(a=>typeof a==='string'?a:JSON.stringify(a)).join(' ')
+    target.appendChild(line)
+  }catch(e){}
+}
 
 function parseWL(s){
   if(typeof s!=='string') return [NaN,NaN]
@@ -107,11 +117,13 @@ async function fetchDivisionStandings(season,type){
         hasChildren:!!raw.children,
         groupCount:(raw.standings?.groups||raw.children||[]).length
       })
+      window.debugLog('fetchDivisionStandings raw',{hasChildren:!!raw.children,groupCount:(raw.standings?.groups||raw.children||[]).length})
       const out={}
       const children=raw.children||raw.standings?.groups||[]
       for(const conf of (children||[])){
         const divs=(conf.children||[])
         console.log('fetchDivisionStandings: conf children count',divs.length)
+        window.debugLog('fetchDivisionStandings conf children',divs.length)
         for(const d of divs){
           const name=d.name||d.abbreviation||''
           const entries=(d.standings?.entries||d.entries||[])
@@ -122,6 +134,7 @@ async function fetchDivisionStandings(season,type){
         }
       }
       console.log('fetchDivisionStandings: out keys',Object.keys(out))
+      window.debugLog('fetchDivisionStandings out keys',Object.keys(out))
       if(Object.keys(out).length) return out
     }catch(e){continue}
   }
@@ -298,12 +311,14 @@ function renderScope(){
   $$('.view').forEach(v=>v.classList.remove('active'))
   if(state.scope==='division' && window.DivPre){
     console.log('renderScope: switching to division',{season:state.season,type:state.type})
+    window.debugLog('renderScope division',{season:state.season,type:state.type})
     $('#division-view').classList.add('active')
     window.DivPre.renderDivision(state.season,state.type)
     return
   }
   if(state.type==='1' && window.DivPre){
     console.log('renderScope: preseason league route',{season:state.season})
+    window.debugLog('renderScope preseason',{season:state.season})
     $('#league-view').classList.add('active')
     window.DivPre.renderPreseasonLeague(state.season)
     return

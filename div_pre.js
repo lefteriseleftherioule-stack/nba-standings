@@ -21,7 +21,6 @@ window.DivPre=(function(){
       if(fb) base=fb.league||[]
     }
     if(!base.length) return
-    const container=document.querySelector('#divisions')
     const mkTable=()=>{
       const table=document.createElement('table')
       table.className='standings'
@@ -72,18 +71,34 @@ window.DivPre=(function(){
     }
     const grid=document.createElement('div')
     grid.className='division-grid'
+    const computedDivs=(()=>{
+      const out={Atlantic:[],Central:[],Southeast:[],Northwest:[],Pacific:[],Southwest:[]}
+      const DIV_MAP={
+        East:{Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],Central:['DET','CLE','MIL','CHI','IND'],Southeast:['ORL','MIA','ATL','CHA','WSH','WAS']},
+        West:{Northwest:['OKC','DEN','MIN','POR','UTA','UTAH'],Pacific:['LAL','PHX','GS','GSW','SAC','LAC'],Southwest:['SAS','SA','HOU','MEM','DAL','NO','NOP','NOLA']}
+      }
+      const sets={...DIV_MAP.East,...DIV_MAP.West}
+      base.forEach(t=>{
+        const ab=String(t.short||'').toUpperCase()
+        Object.entries(sets).forEach(([name,set])=>{
+          if(set.includes(ab)) out[name].push(t)
+        })
+      })
+      Object.keys(out).forEach(k=>out[k]=rank(out[k]))
+      return out
+    })()
     const eastSection=document.createElement('div')
     eastSection.className='conference-block'
     const eastTitle=document.createElement('h2')
     eastTitle.textContent='Eastern Conference'
     eastSection.appendChild(eastTitle)
-    eastOrder.forEach(d=>eastSection.appendChild(makeCard(d,bySet(DIV_MAP.East[d]))))
+    eastOrder.forEach(d=>eastSection.appendChild(makeCard(d,computedDivs[d])))
     const westSection=document.createElement('div')
     westSection.className='conference-block'
     const westTitle=document.createElement('h2')
     westTitle.textContent='Western Conference'
     westSection.appendChild(westTitle)
-    westOrder.forEach(d=>westSection.appendChild(makeCard(d,bySet(DIV_MAP.West[d]))))
+    westOrder.forEach(d=>westSection.appendChild(makeCard(d,computedDivs[d])))
     grid.appendChild(eastSection)
     grid.appendChild(westSection)
     container.appendChild(grid)

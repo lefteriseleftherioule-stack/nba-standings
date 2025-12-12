@@ -91,6 +91,37 @@ async function fetchStandings(season,type){
   return null
 }
 
+async function fetchDivisionStandings(season,type){
+  const apiSeason=apiSeasonFor(season,type)
+  const urls=[
+    `https://site.web.api.espn.com/apis/v2/sports/basketball/nba/standings?season=${apiSeason}&seasontype=${type}&region=us&lang=en&contentorigin=espn`,
+    `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/standings?season=${apiSeason}&seasontype=${type}&region=us&lang=en`
+  ]
+  for(const u of urls){
+    try{
+      const r=await fetch(u,{cache:'no-store'})
+      if(!r.ok) continue
+      const raw=await r.json()
+      if(!raw) continue
+      const out={}
+      const children=raw.children||raw.standings?.groups||[]
+      for(const conf of (children||[])){
+        const divs=(conf.children||[])
+        for(const d of divs){
+          const name=d.name||d.abbreviation||''
+          const entries=(d.standings?.entries||d.entries||[])
+          const teams=entries.map(e=>mapEntry(e,name))
+          if(teams.length){
+            out[name]=rank(teams)
+          }
+        }
+      }
+      if(Object.keys(out).length) return out
+    }catch(e){continue}
+  }
+  return null
+}
+
 function normalize(raw){
   if(raw.children){
     const groups=raw.children.map(g=>({
@@ -295,6 +326,15 @@ function renderDivisions(divs){
   const normDiv=(s)=>{
     const n=String(s||'').toLowerCase().trim()
     return n.replace(/\s*division$/,'')
+  }
+  const divKeys=Object.keys(divs||{})
+  if(divKeys.length===0){
+    fetchDivisionStandings(state.season,state.type).then(fetched=>{
+      if(fetched && Object.keys(fetched).length){
+        renderDivisions(fetched)
+      }
+    }).catch(()=>{})
+    return
   }
   const mkTable=()=>{
     const table=document.createElement('table')

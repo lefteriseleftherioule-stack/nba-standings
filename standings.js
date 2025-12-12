@@ -212,10 +212,16 @@ function mapEntry(e,divisionName){
 }
 
 function groupByScope(groups){
-  const east=(groups.find(g=>/east/i.test(g.name))?.teams)||[]
-  const west=(groups.find(g=>/west/i.test(g.name))?.teams)||[]
-  const league=[...east,...west]
-  return {conference:{East:rank(east),West:rank(west)},league:rank(league),divisions:groupDivisions(league)}
+  const all=groups.flatMap(g=>Array.isArray(g.teams)?g.teams:[])
+  let east=(groups.find(g=>/east/i.test(g.name))?.teams)||[]
+  let west=(groups.find(g=>/west/i.test(g.name))?.teams)||[]
+  if(east.length===0 || west.length===0){
+    east=all.filter(t=>t.conference==='East')
+    west=all.filter(t=>t.conference==='West')
+  }
+  const leagueSrc=(east.length||west.length)?[...east,...west]:all
+  const league=rank(leagueSrc)
+  return {conference:{East:rank(east),West:rank(west)},league,divisions:groupDivisions(league)}
 }
 
 function groupDivisions(list){

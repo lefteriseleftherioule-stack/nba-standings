@@ -356,7 +356,8 @@ function fillTable(tbody,teams,opts={}){
     const fallbackLogo=t.short?`https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${t.short.toLowerCase()}.png`:''
     const logoSrc=t.logo||fallbackLogo
     const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="">`:''
-    const diffClass=t.diff==null?'':(t.diff>=0?'pos-good':'pos-bad')
+    const computedDiff=(t.ppg!=null && t.opppg!=null)?round(t.ppg - t.opppg,1):t.diff
+    const diffClass=computedDiff==null?'':(computedDiff>=0?'pos-good':'pos-bad')
     const gbDisplay=(t.gb===0)?'-':round(t.gb,1)
     const ord='' // remove ordinal numbers in Team cell
     tr.innerHTML=`
@@ -371,7 +372,7 @@ function fillTable(tbody,teams,opts={}){
       <td>${t.conf||'-'}</td>
       <td>${t.ppg!=null?t.ppg:'-'}</td>
       <td>${t.opppg!=null?t.opppg:'-'}</td>
-      <td class="${diffClass}">${t.diff!=null?(t.diff>0?`+${t.diff}`:t.diff):'-'}</td>
+      <td class="${diffClass}">${computedDiff!=null?(computedDiff>0?`+${computedDiff}`:computedDiff):'-'}</td>
       <td>${t.streak??'-'}</td>
       <td>${t.lastTen??'-'}</td>
     `

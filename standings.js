@@ -31,6 +31,7 @@ async function load(){
   if(!data){
     const fb=await buildStandingsFallback()
     if(fb && (fb.league?.length||0)>0){
+      await ensureTeamIndex()
       render(fb)
       status('Updating splits…')
       backfillRecords(fb).then(()=>{ render(fb); status('Updated') }).catch(()=>status('Updated'))
@@ -39,6 +40,7 @@ async function load(){
     }
     const sample=sampleData()
     if(sample){
+      await ensureTeamIndex()
       render(sample)
       status('Updating splits…')
       backfillRecords(sample).then(()=>{ render(sample); status('Showing sample data') }).catch(()=>status('Showing sample data'))
@@ -48,15 +50,8 @@ async function load(){
     status('Failed to load standings');
     return
   }
-  const fb=await buildStandingsFallback()
-  if(fb && (fb.league?.length||0)>0){
-    render(fb)
-    status('Updating splits…')
-    backfillRecords(fb).then(()=>{ render(fb); status('Updated') }).catch(()=>status('Updated'))
-    if(embed) embed.style.display='none'
-    return
-  }
   const normalized=normalize(data)
+  await ensureTeamIndex()
   render(normalized)
   status('Updating splits…')
   backfillRecords(normalized).then(()=>{ render(normalized); status('Updated') }).catch(()=>status('Updated'))
@@ -462,9 +457,6 @@ async function backfillRecords(data){
         const updated=idMap.get(String(t.id))
         if(updated){
           arr[i]={...t,
-            wins: Number.isFinite(updated.wins)?updated.wins:t.wins,
-            losses: Number.isFinite(updated.losses)?updated.losses:t.losses,
-            pct: Number.isFinite(updated.pct)?updated.pct:t.pct,
             home:updated.home||t.home,
             away:updated.away||t.away,
             div:updated.div||t.div,
@@ -646,11 +638,7 @@ async function fetchScheduleAndApply(team,idMap,confById,divById){
     updated.div=(Number.isFinite(dw)&&Number.isFinite(dl))?`${dw}-${dl}`:updated.div
     if(streakLen>0) updated.streak=`W${streakLen}`
     else if(losingLen>0) updated.streak=`L${losingLen}`
-    if(Number.isFinite(totalWins) && Number.isFinite(totalLosses)){
-      updated.wins=totalWins
-      updated.losses=totalLosses
-      updated.pct=(totalWins+totalLosses)?(totalWins/(totalWins+totalLosses)):updated.pct
-    }
+    // Do not override overall W/L from standings; schedule used only for splits and averages
     if(games>0){
       const p=round(sumFor/games,1)
       const o=round(sumAgainst/games,1)

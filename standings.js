@@ -259,10 +259,6 @@ function render(data){
 
 function renderScope(){
   $$('.view').forEach(v=>v.classList.remove('active'))
-  if(state.type==='1'){
-    $('#league-view').classList.add('active')
-    return
-  }
   if(state.scope==='conference')$('#conference-view').classList.add('active')
   if(state.scope==='league')$('#league-view').classList.add('active')
   if(state.scope==='division')$('#division-view').classList.add('active')
@@ -404,6 +400,7 @@ function fillTable(tbody,teams,opts={}){
 function attachSort(tbody,getList){
   const table=tbody.closest('table')
   const ths=table.querySelectorAll('thead th[data-sort]')
+  let current=[...getList()]
   ths.forEach(th=>{
     th.style.cursor='pointer'
     th.addEventListener('click',()=>{
@@ -412,10 +409,11 @@ function attachSort(tbody,getList){
       const dir=prev===''?'desc':(prev==='asc'?'desc':'asc')
       ths.forEach(x=>{ if(x!==th) x.dataset.dir='' })
       th.dataset.dir=dir
-      const list=[...getList()]
+      const list=[...current]
       const cmp=makeComparator(key,dir)
       list.sort(cmp)
       fillTable(tbody,list,{showOrdinal:false})
+      current=list
     })
   })
 }

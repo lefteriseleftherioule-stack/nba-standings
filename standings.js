@@ -262,6 +262,20 @@ function renderScope(){
   if(state.scope==='conference')$('#conference-view').classList.add('active')
   if(state.scope==='league')$('#league-view').classList.add('active')
   if(state.scope==='division')$('#division-view').classList.add('active')
+  const cd=window.currentData
+  if(!cd) return
+  if(state.scope==='conference'){
+    const eastBody=$('#east-body')
+    const westBody=$('#west-body')
+    if(eastBody && eastBody.children.length===0) renderConference(cd.conference)
+    if(westBody && westBody.children.length===0) renderConference(cd.conference)
+  }else if(state.scope==='league'){
+    const leagueBody=$('#league-body')
+    if(leagueBody && leagueBody.children.length===0) renderLeague(cd.league)
+  }else if(state.scope==='division'){
+    const divs=$('#divisions')
+    if(divs && divs.children.length===0) renderDivisions(cd.divisions)
+  }
 }
 
 function renderConference(conf){

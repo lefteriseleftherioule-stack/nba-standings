@@ -21,6 +21,7 @@ $$('.type-btn').forEach(b=>b.addEventListener('click',e=>{
   $$('.type-btn').forEach(x=>x.classList.remove('active'))
   e.currentTarget.classList.add('active')
   state.type=e.currentTarget.dataset.type
+  if(state.type==='1') state.scope='league'
   load()
 }))
 
@@ -316,14 +317,10 @@ function renderDivisions(divs){
   const eastOrder=['Atlantic','Central','Southeast']
   const westOrder=['Northwest','Pacific','Southwest']
   const byDiv=(name,conf)=>{
-    const grouped=(window.currentData?.divisions?.[name])||[]
-    if(grouped.length){
-      return rank(grouped.filter(t=>String(t.conference||'').toLowerCase()===conf.toLowerCase()))
-    }
     const base=(conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[]
     const out=base.filter(t=>{
       const meta=teamIndex.get(String(t.id))||{}
-      const divName=t.division||meta.division||''
+      const divName=(t.division||'') || meta.division || ''
       return String(divName).toLowerCase()===name.toLowerCase()
     })
     return rank(out)

@@ -253,6 +253,10 @@ function render(data){
 
 function renderScope(){
   $$('.view').forEach(v=>v.classList.remove('active'))
+  if(state.type==='1'){
+    $('#league-view').classList.add('active')
+    return
+  }
   if(state.scope==='conference')$('#conference-view').classList.add('active')
   if(state.scope==='league')$('#league-view').classList.add('active')
   if(state.scope==='division')$('#division-view').classList.add('active')
@@ -273,6 +277,23 @@ function renderLeague(list){
 function renderDivisions(divs){
   const container=$('#divisions')
   container.innerHTML=''
+  const normDiv=(s)=>{
+    const n=String(s||'').toLowerCase().trim()
+    return n.replace(/\s*division$/,'')
+  }
+  const DIV_MAP={
+    East:{
+      Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],
+      Central:['DET','CLE','MIL','CHI','IND'],
+      Southeast:['ORL','MIA','ATL','CHA','WAS']
+    },
+    West:{
+      Northwest:['OKC','DEN','MIN','POR','UTA','UTAH'],
+      Pacific:['LAL','PHX','GS','GSW','SAC','LAC'],
+      Southwest:['SAS','HOU','MEM','DAL','NO','NOP','NOLA']
+    }
+  }
+  const inSet=(abbr,set)=>{ const a=String(abbr||'').toUpperCase(); return set.some(x=>a===x) }
   const mkTable=()=>{
     const table=document.createElement('table')
     table.className='standings'
@@ -318,11 +339,8 @@ function renderDivisions(divs){
   const westOrder=['Northwest','Pacific','Southwest']
   const byDiv=(name,conf)=>{
     const base=(conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[]
-    const out=base.filter(t=>{
-      const meta=teamIndex.get(String(t.id))||{}
-      const divName=(t.division||'') || meta.division || ''
-      return String(divName).toLowerCase()===name.toLowerCase()
-    })
+    const set=(DIV_MAP[conf]&&DIV_MAP[conf][name])||[]
+    const out=base.filter(t=> inSet(t.short,set))
     return rank(out)
   }
   const grid=document.createElement('div')

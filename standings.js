@@ -347,8 +347,16 @@ function renderDivisions(divs){
     return league.filter(t=>t.conference===conf)
   }
   const byDiv=(name,conf)=>{
+    const fromDivs=()=>{
+      const keys=Object.keys(divs||{})
+      const key=keys.find(k=>normDiv(k)===normDiv(name))
+      const arr=(key?divs[key]:[])||[]
+      return rank(arr)
+    }
+    let out=fromDivs()
+    if(out.length) return out
     const base=getConfArray(conf)
-    let out=base.filter(t=> normDiv(t.division)===normDiv(name))
+    out=base.filter(t=> normDiv(t.division)===normDiv(name))
     if(!out.length){
       const DIV_MAP={
         East:{Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],Central:['DET','CLE','MIL','CHI','IND'],Southeast:['ORL','MIA','ATL','CHA','WSH','WAS']},

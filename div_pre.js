@@ -118,16 +118,37 @@ window.DivPre=(function(){
     const eastTitle=document.createElement('h2')
     eastTitle.textContent='Eastern Conference'
     eastSection.appendChild(eastTitle)
-    eastOrder.forEach(d=>eastSection.appendChild(makeCard(d,computedDivs[d])))
+    try{
+      eastOrder.forEach(d=>{
+        window.debugLog && window.debugLog('DivPre add east card',d,(computedDivs[d]||[]).length)
+        eastSection.appendChild(makeCard(d,computedDivs[d]||[]))
+      })
+    }catch(err){
+      console.error('DivPre: error building east cards',err)
+      window.debugLog && window.debugLog('DivPre error east cards',String(err&&err.message||err))
+    }
     const westSection=document.createElement('div')
     westSection.className='conference-block'
     const westTitle=document.createElement('h2')
     westTitle.textContent='Western Conference'
     westSection.appendChild(westTitle)
-    westOrder.forEach(d=>westSection.appendChild(makeCard(d,computedDivs[d])))
+    try{
+      westOrder.forEach(d=>{
+        window.debugLog && window.debugLog('DivPre add west card',d,(computedDivs[d]||[]).length)
+        westSection.appendChild(makeCard(d,computedDivs[d]||[]))
+      })
+    }catch(err){
+      console.error('DivPre: error building west cards',err)
+      window.debugLog && window.debugLog('DivPre error west cards',String(err&&err.message||err))
+    }
     grid.appendChild(eastSection)
     grid.appendChild(westSection)
-    container.appendChild(grid)
+    try{
+      container.appendChild(grid)
+    }catch(err){
+      console.error('DivPre: error appending grid',err)
+      window.debugLog && window.debugLog('DivPre error appending grid',String(err&&err.message||err))
+    }
     console.log('DivPre: division grid rendered')
     window.debugLog && window.debugLog('DivPre division grid rendered')
   }

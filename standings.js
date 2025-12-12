@@ -347,13 +347,14 @@ function renderDivisions(divs){
   }
   const byDiv=(name,conf)=>{
     const base=getConfArray(conf)
+    const pool=(base.length?base:(window.currentData?.league||[]))
     const DIV_MAP={
       East:{Atlantic:['NY','NYK','TOR','BOS','PHI','BKN'],Central:['DET','CLE','MIL','CHI','IND'],Southeast:['ORL','MIA','ATL','CHA','WSH','WAS']},
       West:{Northwest:['OKC','DEN','MIN','POR','UTA','UTAH'],Pacific:['LAL','PHX','GS','GSW','SAC','LAC'],Southwest:['SAS','SA','HOU','MEM','DAL','NO','NOP','NOLA']}
     }
     const set=(DIV_MAP[conf]&&DIV_MAP[conf][name])||[]
     const target=normDiv(name)
-    const out=base.filter(t=>{
+    const out=pool.filter(t=>{
       const abbr=String(t.short||'').toUpperCase()
       return normDiv(t.division)===target || set.includes(abbr)
     })

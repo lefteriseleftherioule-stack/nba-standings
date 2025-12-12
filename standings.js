@@ -343,7 +343,8 @@ function renderDivisions(divs){
     const confArr=(conf==='East'?window.currentData?.conference?.East:window.currentData?.conference?.West)||[]
     if(confArr.length) return confArr
     const league=window.currentData?.league||[]
-    return league.filter(t=>t.conference===conf)
+    const want=conf==='East'?'east':'west'
+    return league.filter(t=> new RegExp(want,'i').test(String(t.conference||'')) )
   }
   const byDiv=(name,conf)=>{
     const base=getConfArray(conf)

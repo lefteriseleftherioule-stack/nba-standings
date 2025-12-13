@@ -23,7 +23,7 @@ tbody tr:hover{background:#131926}
 .page-footer{padding:16px 20px;border-top:1px solid #1f2430;color:var(--muted)}
 .view{display:none}
 .view.active{display:block}
-.division-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.division-grid{display:grid;grid-template-columns:1fr;gap:16px}
 .division-card{border:1px solid #1f2430;border-radius:10px;background:var(--card)}
 .division-card h3{margin:10px 12px;color:var(--muted)}
 .division-card .table-wrap{border:none}

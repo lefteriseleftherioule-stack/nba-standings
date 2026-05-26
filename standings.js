@@ -60,6 +60,16 @@ async function load(){
 }
 
 function status(t){statusEl.textContent=t}
+window.debugLog=function(){
+  try{
+    console.log.apply(console,arguments)
+    const target=document.getElementById('debug')||document.getElementById('status')
+    if(!target) return
+    const line=document.createElement('div')
+    line.textContent=Array.from(arguments).map(a=>typeof a==='string'?a:JSON.stringify(a)).join(' ')
+    target.appendChild(line)
+  }catch(e){}
+}
 
 function parseWL(s){
   if(typeof s!=='string') return [NaN,NaN]
@@ -103,11 +113,17 @@ async function fetchDivisionStandings(season,type){
       if(!r.ok) continue
       const raw=await r.json()
       if(!raw) continue
-      
+      console.log('fetchDivisionStandings: got raw children/groups',{
+        hasChildren:!!raw.children,
+        groupCount:(raw.standings?.groups||raw.children||[]).length
+      })
+      window.debugLog('fetchDivisionStandings raw',{hasChildren:!!raw.children,groupCount:(raw.standings?.groups||raw.children||[]).length})
       const out={}
       const children=raw.children||raw.standings?.groups||[]
       for(const conf of (children||[])){
         const divs=(conf.children||[])
+        console.log('fetchDivisionStandings: conf children count',divs.length)
+        window.debugLog('fetchDivisionStandings conf children',divs.length)
         for(const d of divs){
           const name=d.name||d.abbreviation||''
           const entries=(d.standings?.entries||d.entries||[])
@@ -117,6 +133,8 @@ async function fetchDivisionStandings(season,type){
           }
         }
       }
+      console.log('fetchDivisionStandings: out keys',Object.keys(out))
+      window.debugLog('fetchDivisionStandings out keys',Object.keys(out))
       if(Object.keys(out).length) return out
     }catch(e){continue}
   }
@@ -292,11 +310,15 @@ function render(data){
 function renderScope(){
   $$('.view').forEach(v=>v.classList.remove('active'))
   if(state.scope==='division' && window.DivPre){
+    console.log('renderScope: switching to division',{season:state.season,type:state.type})
+    window.debugLog('renderScope division',{season:state.season,type:state.type})
     $('#division-view').classList.add('active')
     window.DivPre.renderDivision(state.season,state.type)
     return
   }
   if(state.type==='1' && window.DivPre){
+    console.log('renderScope: preseason league route',{season:state.season})
+    window.debugLog('renderScope preseason',{season:state.season})
     $('#league-view').classList.add('active')
     window.DivPre.renderPreseasonLeague(state.season)
     return
@@ -437,9 +459,9 @@ function fillTable(tbody,teams,opts={}){
   const list=Array.isArray(teams)?teams:[]
   list.forEach(t=>{
     const tr=document.createElement('tr')
-    const fallbackLogo=t.short?`https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${t.short.toLowerCase()}.png`:''
+    const fallbackLogo=t.short?`https://a.espncdn.com/i/teamlogos/nba/100/scoreboard/${t.short.toLowerCase()}.png`:''
     const logoSrc=t.logo||fallbackLogo
-    const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="">`:''
+    const logo=logoSrc?`<img class="team-logo" src="${logoSrc}" alt="" width="24" height="24" loading="lazy" decoding="async">`:''
     const computedDiff=(t.ppg!=null && t.opppg!=null)?round(t.ppg - t.opppg,1):t.diff
     const diffClass=computedDiff==null?'':(computedDiff>=0?'pos-good':'pos-bad')
     const gbDisplay=(t.gb===0)?'-':round(t.gb,1)
@@ -866,7 +888,7 @@ async function fetchOverallForTeam(teamId,idMap){
 
 function sampleData(){
   const mk=(id,name,short,conference,division)=>({
-    id:String(id),name,short,logo:`https://a.espncdn.com/i/teamlogos/nba/500/scoreboard/${short.toLowerCase()}.png`,
+    id:String(id),name,short,logo:`https://a.espncdn.com/i/teamlogos/nba/100/scoreboard/${short.toLowerCase()}.png`,
     conference,division,wins:0,losses:0,pct:0,
     home:'-',away:'-',div:'-',conf:'-',ppg:null,opppg:null,diff:null,streak:'',lastTen:'-'
   })

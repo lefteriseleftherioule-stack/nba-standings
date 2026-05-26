@@ -17,7 +17,7 @@ th,td{padding:10px 12px;text-align:center;border-bottom:1px solid #1f2430;color:
 th.rank,td.rank{width:40px}
 tbody tr:hover{background:#131926}
 .team-cell{display:inline-flex;align-items:center;justify-content:center;gap:10px}
-.team-logo{width:36px;height:36px;border-radius:6px;object-fit:contain;background:#0b0e14;align-self:flex-start}
+.team-logo{width:24px;height:24px;border-radius:6px;object-fit:contain;background:#0b0e14;align-self:flex-start}
 .pos-good{color:var(--good)}
 .pos-bad{color:var(--bad)}
 .page-footer{padding:16px 20px;border-top:1px solid #1f2430;color:var(--muted)}
